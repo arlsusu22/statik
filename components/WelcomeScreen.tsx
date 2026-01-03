@@ -35,13 +35,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSkip, isLoading 
 
         {/* Centered loading content */}
         <div className="relative z-20 flex-1 flex flex-col items-center justify-center px-6">
-          {/* App name */}
-          <span 
-            className="text-white text-3xl tracking-wide mb-8"
-            style={{ fontFamily: '"Londrina Shadow", cursive' }}
-          >
-            statik.
-          </span>
+          {/* App logo */}
+          <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg mb-8">
+            <img 
+              src="/assets/statiktop.png" 
+              alt="Statik" 
+              className="w-full h-full object-cover"
+            />
+          </div>
           
           {/* Loading spinner */}
           <div className="relative w-12 h-12 mb-6">
@@ -78,14 +79,16 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSkip, isLoading 
         }}
       />
 
-      {/* App name / logo at top */}
-      <div className="relative z-20 pt-12 text-center">
-        <span 
-          className="text-white text-2xl tracking-wide"
-          style={{ fontFamily: '"Londrina Shadow", cursive' }}
-        >
-          statik.
-        </span>
+      {/* App logo at top */}
+      <div className="relative z-20 pt-12 text-center flex flex-col items-center">
+        {/* Circular logo image */}
+        <div className="w-40 h-40 rounded-full overflow-hidden shadow-lg">
+          <img 
+            src="/assets/statiktop.png" 
+            alt="Statik" 
+            className="w-full h-full object-cover"
+          />
+        </div>
       </div>
 
       {/* Centered content */}
@@ -93,8 +96,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSkip, isLoading 
         
         {/* Main headline */}
         <h1 
-          className="text-5xl text-white leading-tight mb-3"
-          style={{ fontFamily: '"Londrina Outline", cursive' }}
+          className="text-white text-4xl mb-2 lowercase"
+          style={{ fontFamily: 'Lacquer, cursive' }}
         >
           Visualize your Effort
         </h1>

@@ -1558,8 +1558,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 );
               })()}
               
-              {/* Route option */}
-              {(() => {
+              {/* Route option - only show if activity has a polyline */}
+              {activity.polyline && (() => {
                 const isRouteAdded = currentVariant === 'create' ? createdElements.includes('route') : showRoute;
                 return (
                   <button
