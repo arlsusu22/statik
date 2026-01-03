@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LensStride - Activity Overlay</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Cal Sans font from cal.com -->
+    <link href="https://cal.com/cal-sans/font.css" rel="stylesheet">
+    <!-- Imports for extended font palette (editorial + playful + handwriting + bubble/graffiti + retro + groovy) -->
+    <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Amatic+SC:wght@400;700&family=Anton&family=Archivo+Black&family=Audiowide&family=Badeen+Display&family=Baloo+2:wght@400;500;600;700;800&family=Bangers&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700&family=Barrio&family=Bebas+Neue&family=Black+Ops+One&family=Bowlby+One+SC&family=Bungee&family=Caesar+Dressing&family=Caveat:wght@400;500;600;700&family=Chewy&family=Chicle&family=Cinzel:wght@600;800&family=Creepster&family=DM+Sans:wght@400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&family=Dokdo&family=DynaPuff:wght@400;500&family=Erica+One&family=Fascinate+Inline&family=Fredoka:wght@400;600&family=Fraunces:ital,wght@0,300;0,400;0,600;0,800;1,400&family=Gaegu:wght@300;400;700&family=Galindo&family=Gloria+Hallelujah&family=Homemade+Apple&family=Inter:wght@300;400;500;600;800&family=Lacquer&family=Lilita+One&family=Lobster&family=Londrina+Outline&family=Londrina+Shadow&family=Londrina+Solid&family=Luckiest+Guy&family=Modak&family=Monoton&family=Oswald:wght@400;600&family=Pacifico&family=Passion+One:wght@400;700&family=Patrick+Hand&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,600;1,600&family=Press+Start+2P&family=Qahiri&family=Ranchers&family=Righteous&family=Roboto+Mono:wght@400;700&family=Rock+3D&family=Rubik+Bubbles&family=Bungee+Outline&family=Jersey+10+Charted&family=Kablammo&family=Rubik+Burned&family=Rubik+Glitch&family=Rubik+Glitch+Pop&family=Rubik+Mono+One&family=Rubik+Doodle+Shadow&family=Rubik+Maze&family=Rubik+Maps&family=Poppins:wght@400;500;600;700&family=Russo+One&family=Shadows+Into+Light&family=Shrikhand&family=Slackey&family=Sniglet:wght@400;800&family=Staatliches&family=Teko:wght@400;500;600;700&family=Titan+One&family=Vina+Sans&family=VT323&family=Wendy+One&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              volt: '#CCFF00',
+              zinc: {
+                850: '#1f1f22',
+                950: '#09090b', // Force darker zinc
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              display: ['"Barlow Condensed"', 'sans-serif'],
+              serif: ['"DM Serif Display"', 'serif'],
+            },
+            animation: {
+              'pulse-fast': 'pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            }
+          },
+        },
+      }
+    </script>
+    <style>
+      /* Gridlock custom font */
+      @font-face {
+        font-family: 'Gridlock';
+        src: url('/assets/fonts/Gridlock.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Bocalupo custom font */
+      @font-face {
+        font-family: 'Bocalupo';
+        src: url('/assets/fonts/Bocalupo-Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Cafe24Moyamoya custom font */
+      @font-face {
+        font-family: 'Cafe24Moyamoya';
+        src: url('/assets/fonts/Cafe24Moyamoya-Regular-v1.0.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* KUBO custom font */
+      @font-face {
+        font-family: 'KUBO';
+        src: url('/assets/fonts/KUBO.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* SpeedFreak custom font */
+      @font-face {
+        font-family: 'SpeedFreak';
+        src: url('/assets/fonts/SpeedFreak.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Blocky custom font */
+      @font-face {
+        font-family: 'Blocky';
+        src: url('/assets/fonts/blocky.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Grith custom font */
+      @font-face {
+        font-family: 'Grith';
+        src: url('/assets/fonts/Grith.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* LTRailway custom font */
+      @font-face {
+        font-family: 'LTRailway';
+        src: url('/assets/fonts/LTRailway-Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* CDTBivaque custom font */
+      @font-face {
+        font-family: 'CDTBivaque';
+        src: url('/assets/fonts/CDTBivaque-Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Chicoree custom font */
+      @font-face {
+        font-family: 'Chicoree';
+        src: url('/assets/fonts/Chicoree%20Em.%20Bold.otf') format('opentype');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* PixelAway custom font */
+      @font-face {
+        font-family: 'PixelAway';
+        src: url('/assets/fonts/fs-a-pixel-away.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Hyrax custom font */
+      @font-face {
+        font-family: 'Hyrax';
+        src: url('/assets/fonts/hyrax.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* MidnightLetters custom font */
+      @font-face {
+        font-family: 'MidnightLetters';
+        src: url('/assets/fonts/MidnightLetters.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* NoseTransport custom font */
+      @font-face {
+        font-family: 'NoseTransport';
+        src: url('/assets/fonts/NoseTransport9-BoldDot.otf') format('opentype');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Orbix custom font */
+      @font-face {
+        font-family: 'Orbix';
+        src: url('/assets/fonts/Orbix-Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Quadriana custom font */
+      @font-face {
+        font-family: 'Quadriana';
+        src: url('/assets/fonts/quadriana.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Quantum custom font */
+      @font-face {
+        font-family: 'Quantum';
+        src: url('/assets/fonts/quantum.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Runtti custom font */
+      @font-face {
+        font-family: 'Runtti';
+        src: url('/assets/fonts/Runtti-Regular.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Tachyo custom font */
+      @font-face {
+        font-family: 'Tachyo';
+        src: url('/assets/fonts/Tachyo-1.0.0.otf') format('opentype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Xanmono custom font */
+      @font-face {
+        font-family: 'Xanmono';
+        src: url('/assets/fonts/Xanmono.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+        font-display: swap;
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+          -ms-overflow-style: none;  /* IE and Edge */
+          scrollbar-width: none;  /* Firefox */
+      }
+      /* Custom color picker input styling */
+      input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+      input[type="color"]::-webkit-color-swatch {
+        border: none;
+        border-radius: 9999px;
+      }
+      /* Animation for welcome screen sport cards */
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      /* Custom thin scrollbar for color palette */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "html-to-image": "https://aistudiocdn.com/html-to-image@^1.11.13",
+    "downloadjs": "https://aistudiocdn.com/downloadjs@^1.4.7"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-zinc-950 text-slate-100 antialiased h-screen overflow-hidden selection:bg-[#CCFF00] selection:text-black">
+    <div id="root" class="h-full w-full"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

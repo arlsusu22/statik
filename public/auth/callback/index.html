@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redirecting to Statik...</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .container {
+      text-align: center;
+      padding: 2rem;
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(255,255,255,0.2);
+      border-top-color: #fc4c02; /* Strava orange */
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    p {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.9rem;
+    }
+    .fallback {
+      margin-top: 2rem;
+      display: none;
+    }
+    .fallback a {
+      color: #fc4c02;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .fallback a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="spinner"></div>
+    <h1>Opening Statik...</h1>
+    <p>Connecting your Strava account</p>
+    <div class="fallback" id="fallback">
+      <p>Didn't redirect? <a href="#" id="manualLink">Tap here to open Statik</a></p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // Get the authorization code from URL
+      const params = window.location.search;
+      const urlParams = new URLSearchParams(params);
+      const code = urlParams.get('code');
+      const error = urlParams.get('error');
+      
+      // Build the deep link URL
+      let deepLink = 'statik://callback';
+      if (code) {
+        deepLink += '?code=' + encodeURIComponent(code);
+      } else if (error) {
+        deepLink += '?error=' + encodeURIComponent(error);
+      }
+      
+      // Set the manual link
+      document.getElementById('manualLink').href = deepLink;
+      
+      // Try to redirect to the app
+      window.location.href = deepLink;
+      
+      // Show fallback link after a delay (in case redirect didn't work)
+      setTimeout(function() {
+        document.getElementById('fallback').style.display = 'block';
+      }, 2500);
+      
+      // For web testing: if we're on localhost or web, redirect back to origin
+      // This allows the web app to still work for development
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        setTimeout(function() {
+          window.location.href = window.location.origin + '/' + params;
+        }, 100);
+      }
+    })();
+  </script>
+</body>
+</html>

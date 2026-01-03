@@ -1,0 +1,5 @@
+{
+  "name": "LensStride Activity Overlay",
+  "description": "A premium activity stats visualizer. Upload a photo of your run, bike ride, or workout watch, and let Gemini AI automatically extract the stats or generate a creative title to overlay on your image for social sharing.",
+  "requestFramePermissions": []
+}
