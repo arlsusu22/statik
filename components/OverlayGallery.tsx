@@ -716,7 +716,7 @@ export const OverlayGallery: React.FC<OverlayGalleryProps> = ({ activity, onBack
       {/* Content on top of checkerboard */}
       <div className="relative z-10 flex flex-col h-full">
         {/* Header - transparent to show checkerboard */}
-        <div className="px-4 pt-6 pb-3">
+        <div className="px-4 pt-14 pb-3">
           <div className="flex items-center gap-4">
             <button 
               onClick={onBack}

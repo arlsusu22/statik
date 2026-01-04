@@ -411,7 +411,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, onSelect
       {/* Main Content Wrapper */}
       <div className="flex flex-col h-full w-full max-w-2xl mx-auto relative z-10">
           {/* Header */}
-          <div className="px-5 pt-8 pb-4 flex justify-between items-center">
+          <div className="px-5 pt-14 pb-4 flex justify-between items-center">
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">Recent Activities</h1>
               <div className="flex items-center gap-2 mt-0.5">

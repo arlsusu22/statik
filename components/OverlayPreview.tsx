@@ -857,7 +857,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
       {/* Header with back button and save only */}
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-900/90">
+      <div className="flex items-center justify-between px-4 pt-14 pb-3 bg-zinc-900/90">
         <button
           onClick={onClose}
           className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 hover:bg-zinc-700 transition-colors"

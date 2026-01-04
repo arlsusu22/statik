@@ -11,12 +11,12 @@ const CLIENT_ID = '186049';
 
 // Backend API URL - uses Vercel serverless functions
 const API_BASE_URL = import.meta.env.PROD 
-  ? 'https://appstatik.com/api' // Production: your Vercel domain
+  ? 'https://app.appstatik.com/api' // Production: your Vercel domain
   : '/api'; // Development: proxied by Vite
 
 // Redirect URI configuration
 // Mobile uses deep link, web uses origin
-const MOBILE_REDIRECT_URI = 'https://appstatik.com/auth/callback';
+const MOBILE_REDIRECT_URI = 'https://app.appstatik.com/auth/callback';
 const WEB_REDIRECT_URI = typeof window !== 'undefined' ? window.location.origin : '';
 const REDIRECT_URI = Capacitor.isNativePlatform() ? MOBILE_REDIRECT_URI : WEB_REDIRECT_URI;
 
