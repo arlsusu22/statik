@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    { "source": "/", "destination": "https://appstatik.com", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/auth/callback", "destination": "/auth/callback/index.html" }
   ],
