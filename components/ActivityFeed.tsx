@@ -141,28 +141,49 @@ const RoutePreview: React.FC<{ encodedPolyline?: string; color?: string }> = ({ 
 
 // Fallback Mock Data if no activities are fetched (for dev/demo)
 
-// Neighborhood run - city blocks with turns (irregular loop)
-const NEIGHBORHOOD_POLYLINE = 'o{ywF~hlbMgE?gEgEgEoKgEoKfEoKnKgEnKfEfEnKfEnKgEnKgEfEgE?';
+// Coastal point-to-point - runs along shoreline going one direction
+const COASTAL_POLYLINE = 'szywFbclbMeBgAcBiAaBkA_BmA}AoA{AqAyAsAwAuAuAwAsAyAqA{AoA}AmAaBkAcBiAeBgAgBeBiBcBkBaBmB_BoB}AqB{AsBy@wBw@yBu@{Bs@}Bq@_Co@aCm@cCk@eCi@gCg@iCe@kCc@mCa@oC';
 
-// Trail/Ride - winding path with natural curves
-const TRAIL_POLYLINE = '_w_xFvwibMi@o@g@g@c@_@[WSQII@EP?^Dl@F~@LnAL~ANlBP|BNjCNvCLbDHjDFpD@vDAvDGxDMtDUrD[hDc@bDk@vCs@jCy@|BcAlBiA~AqAnAwA|@_Bn@cB\\iBNmBBqBIsBSuB[wBc@wBg@wBk@uBi@qBg@oBc@kB[gBSaBGyA@uAPmA^eAl@_A~@u@nAo@~Ag@nB_@|BWjCQxCI`DEjD?pDDvDHxDJvDLvDPpDN';
+// Out and back tempo - straight line out and back
+const OUT_AND_BACK_POLYLINE = 'o{ywF~hlbMcCaAeCaAgCaAiCaAkCaAmCaAoCaAqCaAsCaAuCaAwCaAuCbAwCbAuCbAsCbAqCbAoCbAmCbAkCbAiCbAgCbAeCbAcCbAaCbA';
 
-// Long run - larger irregular loop through streets
-const LONG_RUN_POLYLINE = '_z{wFngnbMoKgEoKgEoKoKgEwQgEwQgEwQgEwQfEwQnKoKnKgEvQgEvQfEvQnKnKnKnKvQfEvQgEvQoKvQoKnKoKnKoKnK';
+// Switchback hill climb - zigzag going up
+const HILL_CLIMB_POLYLINE = 'kzxwFxelbMaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyC';
 
-// Park loop - realistic irregular park path
-const PARK_POLYLINE = 'g|xwFngnbMgEgEoKgEoKgEoKgEgEoKgEoK?wQfEwQnKoKnKgEvQ?nKfEnKnKfEvQ?vQgEvQgEnKoKvQ';
+// Winding river path - S-curves following water
+const RIVER_POLYLINE = 'g|xwFngnbMgCaC}BcCwBeCqBgCkBiCeBkC_BmCyAoCsAqCmAsC';
 
-// Out and back tempo run
-const TEMPO_POLYLINE = '_z{wFngnbMoKoKoKoKoKwQoKwQoKwQoKwQnKnKnKvQnKvQnKvQnKnKnKnK';
+// City grid commute - right angle turns A to B
+const COMMUTE_POLYLINE = '_z{wFngnbMgE?gE?gE?gE?gEgE?gE?gE?gE?gEgE?gE?gE?gE?gEgE?gE?gE';
 
-// Track workout - perfect oval (4 laps)
-const TRACK_POLYLINE = 'o~uwFr|obMg@He@Z_@j@Yx@ObAGhA@hALfAR~@\\p@b@b@d@Rf@?d@Sb@c@\\q@R_ALgA@iAGiAOcAYy@_@k@e@[g@Ig@He@Z_@j@Yx@ObAGhA@hALfAR~@\\p@b@b@d@Rf@?d@Sb@c@\\q@R_ALgA@iAGiAOcAYy@_@k@e@[g@Ig@He@Z_@j@Yx@ObAGhA@hALfAR~@\\p@b@b@d@Rf@?d@Sb@c@\\q@R_ALgA@iAGiAOcAYy@_@k@e@[g@Ig@He@Z_@j@Yx@ObAGhA@hALfAR~@\\p@b@b@d@Rf@?d@Sb@c@\\q@R_ALgA@iAGiAOcAYy@_@k@e@[';
+// Boardwalk run - gentle curves along shore
+const BOARDWALK_POLYLINE = 'o~uwFr|obMoCaAqCaAsC_AuC}@wC{@yCy@{Cw@}Cu@_Ds@aDq@cDo@eDm@gDk@iDi@kDg@';
+
+// Mountain descent trail - switchbacks going down
+const MOUNTAIN_POLYLINE = 'u}rwFjflbMcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcC';
+
+// Straight canal path - mostly straight with gentle bends
+const CANAL_POLYLINE = '_w_xFvwibMeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaA';
+
+// Forest winding trail - curves through trees
+const FOREST_POLYLINE = 'g|xwFngnbMcCgCoByC}AaDmAeDaAfD?fDjAfDzAdDhBbDtBoC~BaC';
+
+// Park loop - realistic irregular rectangle loop
+const PARK_LOOP_POLYLINE = 'kzxwFxelbMgDaAgDaAgDaAgDaA_D_DaAgDaAgDaAgDaAgD_DfEaAfEaAfEaAfEaEfE_DnCaEnCaEnCaEnCaE';
+
+// Neighborhood loop - city blocks square-ish loop
+const NEIGHBORHOOD_POLYLINE = 'szywFbclbMoD?oD?oD?oD??oD?oD?oD?oDnD?nD?nD?nD??nD?nD?nD?nD';
+
+// Track oval - classic running track shape (4 laps visible)
+const TRACK_POLYLINE = 'o~uwFr|obMg@Ri@b@c@n@Wz@G`ABbAP~@\\v@h@h@r@Tz@?x@Ut@i@h@y@Xg@RWPONMg@Ri@b@c@n@Wz@G`ABbAP~@\\v@h@h@r@Tz@?x@Ut@i@h@y@Xg@RW';
+
+// Figure-8 trail loop
+const FIGURE_EIGHT_POLYLINE = 'kzxwFxelbMcBcB_BiB{AkBwAmByAoBuAqBsAsBqAuBoAuBaBfBcBhB_BjB{AlBwAnByApBuArBsAtBqAvBoAxBaBgBcBiB';
 
 const MOCK_ACTIVITIES: ActivityStats[] = [
   {
     id: '1',
-    title: 'Morning Run',
+    title: 'Coastal Run',
     distance: '10.02 km',
     time: '48m 12s',
     elevation: '124 m',
@@ -171,50 +192,50 @@ const MOCK_ACTIVITIES: ActivityStats[] = [
     date: 'Today, 6:45 AM',
     calories: '650 kcal',
     heartRate: '165 bpm',
-    polyline: NEIGHBORHOOD_POLYLINE,
+    polyline: COASTAL_POLYLINE,
   },
   {
     id: '2',
-    title: 'Lunch Ride',
-    distance: '24.5 km',
-    time: '1h 5m 30s',
-    elevation: '320 m',
-    pace: '22.4 km/h',
-    type: 'bike',
-    date: 'Yesterday, 12:15 PM',
-    calories: '480 kcal',
-    heartRate: '135 bpm',
-    polyline: TRAIL_POLYLINE,
+    title: 'Park Loop',
+    distance: '5.2 km',
+    time: '26m 30s',
+    elevation: '45 m',
+    pace: '5:06 /km',
+    type: 'run',
+    date: 'Yesterday, 7:00 AM',
+    calories: '340 kcal',
+    heartRate: '155 bpm',
+    polyline: PARK_LOOP_POLYLINE,
   },
   {
     id: '3',
-    title: 'Long Run',
-    distance: '21.1 km',
-    time: '1h 58m 45s',
-    elevation: '210 m',
-    pace: '5:38 /km',
+    title: 'Hill Climb',
+    distance: '8.5 km',
+    time: '52m 45s',
+    elevation: '510 m',
+    pace: '6:12 /km',
     type: 'run',
     date: 'Sunday, 7:00 AM',
-    calories: '1450 kcal',
-    heartRate: '158 bpm',
-    polyline: LONG_RUN_POLYLINE,
+    calories: '620 kcal',
+    heartRate: '168 bpm',
+    polyline: HILL_CLIMB_POLYLINE,
   },
   {
     id: '4',
-    title: 'Park Loop',
-    distance: '5.5 km',
-    time: '28m 30s',
-    elevation: '45 m',
-    pace: '5:11 /km',
+    title: 'Neighborhood Run',
+    distance: '6.8 km',
+    time: '32m 30s',
+    elevation: '55 m',
+    pace: '4:47 /km',
     type: 'run',
     date: 'Saturday, 8:30 AM',
-    calories: '380 kcal',
-    heartRate: '152 bpm',
-    polyline: PARK_POLYLINE,
+    calories: '445 kcal',
+    heartRate: '158 bpm',
+    polyline: NEIGHBORHOOD_POLYLINE,
   },
   {
     id: '5',
-    title: 'Tempo Run',
+    title: 'Out & Back',
     distance: '8.0 km',
     time: '35m 12s',
     elevation: '68 m',
@@ -223,7 +244,7 @@ const MOCK_ACTIVITIES: ActivityStats[] = [
     date: 'Friday, 6:00 AM',
     calories: '520 kcal',
     heartRate: '172 bpm',
-    polyline: TEMPO_POLYLINE,
+    polyline: OUT_AND_BACK_POLYLINE,
   },
   {
     id: '6',
@@ -237,6 +258,84 @@ const MOCK_ACTIVITIES: ActivityStats[] = [
     calories: '480 kcal',
     heartRate: '178 bpm',
     polyline: TRACK_POLYLINE,
+  },
+  {
+    id: '7',
+    title: 'Mountain Trail',
+    distance: '12.3 km',
+    time: '1h 15m 22s',
+    elevation: '620 m',
+    pace: '6:08 /km',
+    type: 'hike',
+    date: 'Wednesday, 9:00 AM',
+    calories: '890 kcal',
+    heartRate: '145 bpm',
+    polyline: MOUNTAIN_POLYLINE,
+  },
+  {
+    id: '8',
+    title: 'Figure 8 Trail',
+    distance: '9.5 km',
+    time: '48m 45s',
+    elevation: '135 m',
+    pace: '5:08 /km',
+    type: 'run',
+    date: 'Tuesday, 6:30 AM',
+    calories: '620 kcal',
+    heartRate: '162 bpm',
+    polyline: FIGURE_EIGHT_POLYLINE,
+  },
+  {
+    id: '9',
+    title: 'Forest Trail',
+    distance: '7.8 km',
+    time: '42m 18s',
+    elevation: '185 m',
+    pace: '5:25 /km',
+    type: 'run',
+    date: 'Monday, 7:15 AM',
+    calories: '510 kcal',
+    heartRate: '155 bpm',
+    polyline: FOREST_POLYLINE,
+  },
+  {
+    id: '10',
+    title: 'River Path',
+    distance: '11.2 km',
+    time: '54m 05s',
+    elevation: '78 m',
+    pace: '4:50 /km',
+    type: 'run',
+    date: 'Last Sunday, 8:00 AM',
+    calories: '595 kcal',
+    heartRate: '160 bpm',
+    polyline: RIVER_POLYLINE,
+  },
+  {
+    id: '11',
+    title: 'Canal Path',
+    distance: '15.0 km',
+    time: '1h 8m 45s',
+    elevation: '25 m',
+    pace: '4:35 /km',
+    type: 'run',
+    date: 'Last Saturday, 6:00 AM',
+    calories: '720 kcal',
+    heartRate: '158 bpm',
+    polyline: CANAL_POLYLINE,
+  },
+  {
+    id: '12',
+    title: 'Boardwalk Run',
+    distance: '4.5 km',
+    time: '21m 30s',
+    elevation: '12 m',
+    pace: '4:47 /km',
+    type: 'run',
+    date: 'Last Friday, 6:45 AM',
+    calories: '310 kcal',
+    heartRate: '152 bpm',
+    polyline: BOARDWALK_POLYLINE,
   }
 ];
 
