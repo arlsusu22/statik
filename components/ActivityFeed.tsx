@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ActivityStats } from '../types';
+import { ActivityStats, StravaAthlete } from '../types';
 import { StravaIcon, RefreshIcon, ViewOnStravaLink } from '../constants';
 import { getStatsForActivityType } from '../utils/activityStats';
 
@@ -10,6 +10,7 @@ interface ActivityFeedProps {
   onManualUpload: () => void;
   onProfile?: () => void;
   onSettings?: () => void;
+  athlete?: StravaAthlete | null;
 }
 
 // Activity type colors - vibrant but not harsh
@@ -168,8 +169,8 @@ const CANAL_POLYLINE = '_w_xFvwibMeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaAeD_AeD
 // Forest winding trail - curves through trees
 const FOREST_POLYLINE = 'g|xwFngnbMcCgCoByC}AaDmAeDaAfD?fDjAfDzAdDhBbDtBoC~BaC';
 
-// Park loop - realistic irregular rectangle loop
-const PARK_LOOP_POLYLINE = 'kzxwFxelbMgDaAgDaAgDaAgDaA_D_DaAgDaAgDaAgDaAgD_DfEaAfEaAfEaAfEaEfE_DnCaEnCaEnCaEnCaE';
+// Park loop - oval loop around park
+const PARK_LOOP_POLYLINE = '_oywFfhmbMgEfEgEnKcBnKbBnKfEfEnK?nKgEfEoK?oKgEoKkHgEkH?';
 
 // Neighborhood loop - city blocks square-ish loop
 const NEIGHBORHOOD_POLYLINE = 'szywFbclbMoD?oD?oD?oD??oD?oD?oD?oDnD?nD?nD?nD??nD?nD?nD?nD';
@@ -339,7 +340,7 @@ const MOCK_ACTIVITIES: ActivityStats[] = [
   }
 ];
 
-export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, onSelectActivity, onManualUpload, onProfile, onSettings }) => {
+export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, onSelectActivity, onManualUpload, onProfile, onSettings, athlete }) => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   // If real activities exist, use them. Otherwise use mock for display until sync.
@@ -443,12 +444,20 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, onSelect
                 {onProfile && (
                   <button 
                       onClick={onProfile}
-                      className="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all flex items-center justify-center"
+                      className="w-9 h-9 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all flex items-center justify-center overflow-hidden"
                   >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
-                      </svg>
+                      {athlete?.profile_medium ? (
+                        <img 
+                          src={athlete.profile_medium} 
+                          alt={`${athlete.firstname || 'Profile'}'s avatar`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                          <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                      )}
                   </button>
                 )}
             </div>

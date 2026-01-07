@@ -1,6 +1,7 @@
-import { ActivityStats } from '../types';
+import { ActivityStats, SplitData, ActivityChartData } from '../types';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { secureSet, secureGet, secureRemove } from './secureStorage';
 
 // ---------------------------------------------------------------------------
 // ⚠️ CONFIGURATION
@@ -32,6 +33,18 @@ const CACHE_KEYS = {
   ACTIVITY_DETAILS: 'strava_activity_details_cache',
   API_STATS: 'strava_api_stats',
 };
+
+// Token storage keys
+const TOKEN_KEYS = {
+  ACCESS_TOKEN: 'strava_access_token',
+  REFRESH_TOKEN: 'strava_refresh_token',
+  EXPIRES_AT: 'strava_expires_at',
+  ATHLETE: 'strava_athlete',
+  OAUTH_STATE: 'strava_oauth_state', // CSRF protection
+};
+
+// Refresh token 5 minutes before expiry to avoid failed requests
+const TOKEN_REFRESH_BUFFER = 5 * 60; // 5 minutes in seconds
 
 // Cache duration in milliseconds (5 minutes for activities list)
 const ACTIVITIES_CACHE_DURATION = 5 * 60 * 1000;
@@ -74,28 +87,30 @@ const logApiCall = (endpoint: string) => {
   localStorage.setItem(CACHE_KEYS.API_STATS, JSON.stringify(stats));
   
   // Log to console for debugging
+  // Approved limits: 300 reads/15min (3000/day), 600 overall/15min (6000/day)
   console.log(`📡 Strava API: ${endpoint}`);
-  console.log(`   └── Today: ${stats.dailyCalls}/1000 | Last 15min: ${stats.recentCalls.length}/100`);
+  console.log(`   └── Today: ${stats.dailyCalls}/3000 | Last 15min: ${stats.recentCalls.length}/300`);
   
-  // Warn if approaching limits
-  if (stats.recentCalls.length >= 80) {
+  // Warn if approaching limits (80% threshold)
+  if (stats.recentCalls.length >= 240) {
     console.warn('⚠️ Approaching 15-minute rate limit!');
   }
-  if (stats.dailyCalls >= 800) {
+  if (stats.dailyCalls >= 2400) {
     console.warn('⚠️ Approaching daily rate limit!');
   }
 };
 
 // Export for monitoring (can be called from console or UI)
+// Approved limits: Read 300/15min (3000/day), Overall 600/15min (6000/day)
 export const getApiUsageStats = () => {
   const stats = getApiStats();
   return {
     dailyCalls: stats.dailyCalls,
-    dailyLimit: 1000,
-    dailyRemaining: 1000 - stats.dailyCalls,
+    dailyLimit: 3000,
+    dailyRemaining: 3000 - stats.dailyCalls,
     fifteenMinCalls: stats.recentCalls.length,
-    fifteenMinLimit: 100,
-    fifteenMinRemaining: 100 - stats.recentCalls.length,
+    fifteenMinLimit: 300,
+    fifteenMinRemaining: 300 - stats.recentCalls.length,
   };
 };
 
@@ -154,12 +169,140 @@ export const clearActivitiesCache = () => {
 };
 
 // ---------------------------------------------------------------------------
+// TOKEN MANAGEMENT
+// ---------------------------------------------------------------------------
+
+interface StoredTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresAt: number;
+  athlete?: any;
+}
+
+// Save tokens after OAuth or refresh (uses secure storage on native)
+export const saveTokens = async (data: {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number;
+  athlete?: any;
+}): Promise<void> => {
+  await secureSet(TOKEN_KEYS.ACCESS_TOKEN, data.access_token);
+  await secureSet(TOKEN_KEYS.REFRESH_TOKEN, data.refresh_token);
+  await secureSet(TOKEN_KEYS.EXPIRES_AT, data.expires_at.toString());
+  if (data.athlete) {
+    await secureSet(TOKEN_KEYS.ATHLETE, JSON.stringify(data.athlete));
+  }
+  console.log(`🔐 Tokens saved securely, expires at: ${new Date(data.expires_at * 1000).toLocaleString()}`);
+};
+
+// Get stored tokens (from secure storage on native)
+export const getStoredTokens = async (): Promise<StoredTokens | null> => {
+  const accessToken = await secureGet(TOKEN_KEYS.ACCESS_TOKEN);
+  const refreshToken = await secureGet(TOKEN_KEYS.REFRESH_TOKEN);
+  const expiresAt = await secureGet(TOKEN_KEYS.EXPIRES_AT);
+  
+  if (!accessToken || !refreshToken || !expiresAt) {
+    return null;
+  }
+  
+  const athleteStr = await secureGet(TOKEN_KEYS.ATHLETE);
+  return {
+    accessToken,
+    refreshToken,
+    expiresAt: Number(expiresAt),
+    athlete: athleteStr ? JSON.parse(athleteStr) : undefined,
+  };
+};
+
+// Check if token is expired (with buffer)
+export const isTokenExpired = (expiresAt: number): boolean => {
+  const now = Math.floor(Date.now() / 1000);
+  return now >= (expiresAt - TOKEN_REFRESH_BUFFER);
+};
+
+// Refresh the access token using refresh token
+export const refreshAccessToken = async (refreshToken: string): Promise<StoredTokens> => {
+  logApiCall('POST /api/strava/refresh (via backend)');
+  
+  const response = await fetch(`${API_BASE_URL}/strava/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: refreshToken }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Token refresh failed:', error);
+    throw new Error(error.error || 'Failed to refresh token');
+  }
+  
+  const data = await response.json();
+  
+  // Save the new tokens
+  await saveTokens(data);
+  
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token,
+    expiresAt: data.expires_at,
+  };
+};
+
+// Get a valid access token (auto-refresh if expired)
+export const getValidAccessToken = async (): Promise<string | null> => {
+  const tokens = await getStoredTokens();
+  
+  if (!tokens) {
+    console.log('❌ No stored tokens found');
+    return null;
+  }
+  
+  // Check if token is expired or about to expire
+  if (isTokenExpired(tokens.expiresAt)) {
+    console.log('🔄 Token expired, refreshing...');
+    try {
+      const newTokens = await refreshAccessToken(tokens.refreshToken);
+      return newTokens.accessToken;
+    } catch (error) {
+      console.error('Failed to refresh token:', error);
+      // Clear invalid tokens
+      await clearStoredTokens();
+      return null;
+    }
+  }
+  
+  const timeLeft = tokens.expiresAt - Math.floor(Date.now() / 1000);
+  console.log(`✅ Token valid for ${Math.round(timeLeft / 60)} more minutes`);
+  return tokens.accessToken;
+};
+
+// Clear all stored tokens (logout) - removes from secure storage
+export const clearStoredTokens = async (): Promise<void> => {
+  await secureRemove(TOKEN_KEYS.ACCESS_TOKEN);
+  await secureRemove(TOKEN_KEYS.REFRESH_TOKEN);
+  await secureRemove(TOKEN_KEYS.EXPIRES_AT);
+  await secureRemove(TOKEN_KEYS.ATHLETE);
+  console.log('🚪 Tokens cleared securely (logged out)');
+};
+
+// Check if user is logged in (async due to secure storage)
+export const isLoggedIn = async (): Promise<boolean> => {
+  const tokens = await getStoredTokens();
+  return tokens !== null;
+};
+
+// ---------------------------------------------------------------------------
 // STRAVA API FUNCTIONS
 // ---------------------------------------------------------------------------
 
 export const loginWithStrava = async () => {
   const scope = 'activity:read_all';
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&approval_prompt=force&scope=${scope}`;
+  
+  // Generate random state for CSRF protection
+  const state = crypto.randomUUID();
+  await secureSet(TOKEN_KEYS.OAUTH_STATE, state);
+  
+  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&approval_prompt=force&scope=${scope}&state=${state}`;
   
   if (Capacitor.isNativePlatform()) {
     // Open Strava auth in in-app browser
@@ -171,7 +314,41 @@ export const loginWithStrava = async () => {
   }
 };
 
-export const getToken = async (code: string) => {
+// Verify OAuth state parameter (CSRF protection)
+export const verifyOAuthState = async (receivedState: string | null): Promise<boolean> => {
+  if (!receivedState) {
+    console.warn('⚠️ No state parameter received in OAuth callback');
+    return false;
+  }
+  
+  const storedState = await secureGet(TOKEN_KEYS.OAUTH_STATE);
+  
+  // Clear stored state after checking (one-time use)
+  await secureRemove(TOKEN_KEYS.OAUTH_STATE);
+  
+  if (!storedState) {
+    console.warn('⚠️ No stored state found for OAuth verification');
+    return false;
+  }
+  
+  if (storedState !== receivedState) {
+    console.error('❌ OAuth state mismatch - possible CSRF attack');
+    return false;
+  }
+  
+  console.log('✅ OAuth state verified successfully');
+  return true;
+};
+
+export const getToken = async (code: string, state?: string | null) => {
+  // Verify state parameter if provided (CSRF protection)
+  if (state !== undefined) {
+    const isValid = await verifyOAuthState(state);
+    if (!isValid) {
+      throw new Error('OAuth state verification failed - possible CSRF attack');
+    }
+  }
+  
   logApiCall('POST /api/strava/token (via backend)');
   
   // Call our secure backend instead of Strava directly
@@ -191,7 +368,12 @@ export const getToken = async (code: string) => {
     throw new Error(error.error || 'Failed to exchange token');
   }
   
-  return response.json();
+  const tokenData = await response.json();
+  
+  // Securely save tokens after successful OAuth
+  await saveTokens(tokenData);
+  
+  return tokenData;
 };
 
 const formatTime = (seconds: number): string => {
@@ -276,6 +458,74 @@ export const fetchActivityDetails = async (accessToken: string, activityId: stri
     return details;
   } catch (error) {
     console.error('Error fetching activity details:', error);
+    return null;
+  }
+};
+
+// Fetch chart data for an activity (splits, zones, etc.)
+export const fetchActivityChartData = async (accessToken: string, activityId: string): Promise<ActivityChartData | null> => {
+  // Check cache first
+  const cacheKey = `chart_${activityId}`;
+  const cached = localStorage.getItem(cacheKey);
+  if (cached) {
+    const parsed = JSON.parse(cached);
+    // Cache for 24 hours
+    if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+      console.log('📊 Using cached chart data for activity', activityId);
+      return parsed.data;
+    }
+  }
+  
+  try {
+    logApiCall(`GET /activities/${activityId} (chart data)`);
+    const response = await fetch(`https://www.strava.com/api/v3/activities/${activityId}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    
+    if (!response.ok) return null;
+    
+    const activity = await response.json();
+    
+    // Extract splits data (metric by default)
+    const splitsRaw = activity.splits_metric || activity.splits_standard || [];
+    const splits: SplitData[] = splitsRaw.map((s: any) => ({
+      split: s.split,
+      distance: s.distance,
+      elapsed_time: s.elapsed_time,
+      moving_time: s.moving_time,
+      average_speed: s.average_speed,
+      elevation_difference: s.elevation_difference || 0,
+      pace_zone: s.pace_zone || 0,
+    }));
+    
+    const chartData: ActivityChartData = {
+      splits: splits.length > 0 ? splits : undefined,
+      hasHeartRate: activity.has_heartrate || false,
+      hasElevation: activity.total_elevation_gain > 0,
+      hasPower: activity.device_watts || false,
+      // Elevation data
+      elevationGain: activity.total_elevation_gain || 0,
+      elevLow: activity.elev_low || 0,
+      elevHigh: activity.elev_high || 0,
+      averageSpeed: activity.average_speed || 0,
+    };
+    
+    console.log('📊 Chart data for activity:', {
+      activityId,
+      splitsCount: splits.length,
+      hasHeartRate: chartData.hasHeartRate,
+      hasElevation: chartData.hasElevation,
+    });
+    
+    // Cache the result
+    localStorage.setItem(cacheKey, JSON.stringify({
+      data: chartData,
+      timestamp: Date.now(),
+    }));
+    
+    return chartData;
+  } catch (error) {
+    console.error('Error fetching chart data:', error);
     return null;
   }
 };

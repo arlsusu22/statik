@@ -1,4 +1,59 @@
 
+// Strava athlete profile data
+export interface StravaAthlete {
+  id: number;
+  firstname?: string;
+  lastname?: string;
+  profile_medium?: string; // 62x62 pixel profile picture URL
+  profile?: string; // 124x124 pixel profile picture URL
+  city?: string;
+  state?: string;
+  country?: string;
+}
+
+// Split data for pace charts
+export interface SplitData {
+  split: number; // Split number (1, 2, 3...)
+  distance: number; // Distance in meters
+  elapsed_time: number; // Time in seconds
+  moving_time: number; // Moving time in seconds
+  average_speed: number; // m/s
+  elevation_difference: number; // meters
+  pace_zone: number; // 0-4 zone
+}
+
+// Chart data available for an activity
+export interface ActivityChartData {
+  splits?: SplitData[]; // Km/mile splits (pace chart)
+  hasHeartRate?: boolean; // If HR data available
+  hasElevation?: boolean; // If elevation data available  
+  hasPower?: boolean; // If power data available (cycling)
+  // Elevation data for elevation chart
+  elevationGain?: number; // Total elevation gain in meters
+  elevLow?: number; // Lowest elevation point in meters
+  elevHigh?: number; // Highest elevation point in meters
+  averageSpeed?: number; // Average speed in m/s
+}
+
+// Chart types that can be displayed
+export type ChartType = 'pace' | 'elevation' | 'heartrate';
+
+// Chart orientation
+export type ChartOrientation = 'vertical' | 'horizontal';
+
+// Chart bar effect styles
+export type ChartBarEffect = 'solid' | 'gradient-multi' | 'gradient-shine';
+
+// Chart settings for customization
+export interface ChartSettings {
+  barColor?: string; // Custom bar color
+  textColor?: string; // Custom text color
+  orientation?: ChartOrientation; // Vertical or horizontal bars
+  barEffect?: ChartBarEffect; // Effect applied to bars
+  showLabels?: boolean; // Show pace labels above bars
+  showTitle?: boolean; // Show "Splits" title
+}
+
 export interface ActivityStats {
   id?: string;
   title: string;
@@ -13,6 +68,7 @@ export interface ActivityStats {
   date?: string; // e.g., "Today, 6:42 AM"
   mapUrl?: string; // Placeholder for map thumbnail
   polyline?: string; // Encoded polyline for route overlay
+  chartData?: ActivityChartData; // Chart visualization data
 }
 
 export interface VisibleStats {
@@ -39,7 +95,7 @@ export interface SeparatedStats {
 export type OutlineStyle = 'solid' | 'glow' | 'double';
 
 // Visual effects that can be applied to any element
-export type ElementEffectType = 'none' | 'blur' | 'grain' | 'glitch';
+export type ElementEffectType = 'none' | 'glitch' | 'shiny' | 'retro';
 
 export interface ElementEffect {
   type: ElementEffectType;
@@ -82,7 +138,7 @@ export interface BackgroundConfig {
   transparent?: boolean;
 }
 
-export type RouteStyle = 'smooth' | 'sharp' | 'glow' | 'dashed' | 'dotted' | 'animated' | '3d' | 'neon' | 'gradient' | 'pulse' | 'trail' | 'striped';
+export type RouteStyle = 'smooth' | 'sharp' | 'paint' | 'dashed' | 'dotted' | 'animated' | '3d' | 'neon' | 'gradient' | 'pulse' | 'trail' | 'striped';
 
 export type TextStyle = 'default' | 'magazine' | 'cartoon' | 'sci-fi';
 
@@ -191,6 +247,19 @@ export enum OverlayPack {
   TACHYO = 'TACHYO',
   XANMONO = 'XANMONO',
   CAL_SANS = 'CAL_SANS',
+  // Playful Google Fonts packs
+  KIRANG = 'KIRANG',
+  BANGERS = 'BANGERS',
+  JOLLY_LODGER = 'JOLLY_LODGER',
+  FRECKLE_FACE = 'FRECKLE_FACE',
+  CHEWY = 'CHEWY',
+  LUCKIEST_GUY = 'LUCKIEST_GUY',
+  // Clean modern packs (no outline, just pop)
+  COMFORTAA = 'COMFORTAA',
+  ATKINSON = 'ATKINSON',
+  FINLANDICA = 'FINLANDICA',
+  ALLERTA = 'ALLERTA',
+  KDAM = 'KDAM',
   // Inactive packs (kept for type safety)
   STRANGE_MARKS = 'STRANGE_MARKS',
   MONTSERRAT_ITALIC = 'MONTSERRAT_ITALIC',
@@ -1736,6 +1805,84 @@ export const PACK_CONFIG: Record<OverlayPack, { label: string; description: stri
     ],
     defaultColor: '#FFFFFF',
   },
+  [OverlayPack.KIRANG]: {
+    label: 'Kirang',
+    description: 'Playful Korean brush font',
+    layouts: [
+      'KIRANG_CLASSIC',
+      'KIRANG_COLUMN',
+      'KIRANG_GRID',
+      'KIRANG_WAVY',
+      'KIRANG_CIRCULAR',
+      'KIRANG_SCATTER',
+    ],
+    defaultColor: '#FF6B9D',
+  },
+  [OverlayPack.BANGERS]: {
+    label: 'Bangers',
+    description: 'Bold comic book style',
+    layouts: [
+      'BANGERS_CLASSIC',
+      'BANGERS_COLUMN',
+      'BANGERS_GRID',
+      'BANGERS_WAVY',
+      'BANGERS_CIRCULAR',
+      'BANGERS_SCATTER',
+    ],
+    defaultColor: '#FFE135',
+  },
+  [OverlayPack.JOLLY_LODGER]: {
+    label: 'Jolly',
+    description: 'Fun handwritten carnival style',
+    layouts: [
+      'JOLLY_LODGER_CLASSIC',
+      'JOLLY_LODGER_COLUMN',
+      'JOLLY_LODGER_GRID',
+      'JOLLY_LODGER_WAVY',
+      'JOLLY_LODGER_CIRCULAR',
+      'JOLLY_LODGER_SCATTER',
+    ],
+    defaultColor: '#7FDBFF',
+  },
+  [OverlayPack.FRECKLE_FACE]: {
+    label: 'Freckle',
+    description: 'Friendly hand-drawn lettering',
+    layouts: [
+      'FRECKLE_FACE_CLASSIC',
+      'FRECKLE_FACE_COLUMN',
+      'FRECKLE_FACE_GRID',
+      'FRECKLE_FACE_WAVY',
+      'FRECKLE_FACE_CIRCULAR',
+      'FRECKLE_FACE_SCATTER',
+    ],
+    defaultColor: '#2ECC40',
+  },
+  [OverlayPack.CHEWY]: {
+    label: 'Chewy',
+    description: 'Soft, rounded playful font',
+    layouts: [
+      'CHEWY_CLASSIC',
+      'CHEWY_COLUMN',
+      'CHEWY_GRID',
+      'CHEWY_WAVY',
+      'CHEWY_CIRCULAR',
+      'CHEWY_SCATTER',
+    ],
+    defaultColor: '#FF9FF3',
+  },
+  [OverlayPack.LUCKIEST_GUY]: {
+    label: 'Lucky',
+    description: 'Bold cartoon display font',
+    layouts: [
+      'LUCKIEST_GUY_CLASSIC',
+      'LUCKIEST_GUY_COLUMN',
+      'LUCKIEST_GUY_GRID',
+      'LUCKIEST_GUY_WAVY',
+      'LUCKIEST_GUY_CIRCULAR',
+      'LUCKIEST_GUY_SCATTER',
+    ],
+    defaultColor: '#00D2D3',
+  },
   [OverlayPack.MONTSERRAT_ITALIC]: {
     label: 'Montserrat',
     description: 'Clean italic sans-serif',
@@ -1746,6 +1893,71 @@ export const PACK_CONFIG: Record<OverlayPack, { label: string; description: stri
       'MONTSERRAT_ITALIC_WAVY',
       'MONTSERRAT_ITALIC_CIRCULAR',
       'MONTSERRAT_ITALIC_SCATTER',
+    ],
+    defaultColor: '#FFFFFF',
+  },
+  [OverlayPack.COMFORTAA]: {
+    label: 'Comfort',
+    description: 'Rounded modern sans-serif',
+    layouts: [
+      'COMFORTAA_CLASSIC',
+      'COMFORTAA_COLUMN',
+      'COMFORTAA_GRID',
+      'COMFORTAA_WAVY',
+      'COMFORTAA_CIRCULAR',
+      'COMFORTAA_SCATTER',
+    ],
+    defaultColor: '#FFFFFF',
+  },
+  [OverlayPack.ATKINSON]: {
+    label: 'Atkinson',
+    description: 'Accessible monospace',
+    layouts: [
+      'ATKINSON_CLASSIC',
+      'ATKINSON_COLUMN',
+      'ATKINSON_GRID',
+      'ATKINSON_WAVY',
+      'ATKINSON_CIRCULAR',
+      'ATKINSON_SCATTER',
+    ],
+    defaultColor: '#FFFFFF',
+  },
+  [OverlayPack.FINLANDICA]: {
+    label: 'Nordic',
+    description: 'Clean Finnish design',
+    layouts: [
+      'FINLANDICA_CLASSIC',
+      'FINLANDICA_COLUMN',
+      'FINLANDICA_GRID',
+      'FINLANDICA_WAVY',
+      'FINLANDICA_CIRCULAR',
+      'FINLANDICA_SCATTER',
+    ],
+    defaultColor: '#FFFFFF',
+  },
+  [OverlayPack.ALLERTA]: {
+    label: 'Alert',
+    description: 'Bold signal typography',
+    layouts: [
+      'ALLERTA_CLASSIC',
+      'ALLERTA_COLUMN',
+      'ALLERTA_GRID',
+      'ALLERTA_WAVY',
+      'ALLERTA_CIRCULAR',
+      'ALLERTA_SCATTER',
+    ],
+    defaultColor: '#FFFFFF',
+  },
+  [OverlayPack.KDAM]: {
+    label: 'Kdam',
+    description: 'Thai-inspired display',
+    layouts: [
+      'KDAM_CLASSIC',
+      'KDAM_COLUMN',
+      'KDAM_GRID',
+      'KDAM_WAVY',
+      'KDAM_CIRCULAR',
+      'KDAM_SCATTER',
     ],
     defaultColor: '#FFFFFF',
   },

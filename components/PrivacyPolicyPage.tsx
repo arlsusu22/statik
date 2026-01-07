@@ -9,7 +9,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
     <div className="fixed inset-0 bg-zinc-950 text-white overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800 z-10">
-        <div className="flex items-center px-4 py-4">
+        <div className="flex items-center px-4 pt-14 pb-4">
           <button
             onClick={onBack}
             className="text-zinc-400 hover:text-white transition-colors mr-4"
@@ -20,7 +20,7 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
           </button>
           <h1 
             className="text-xl"
-            style={{ fontFamily: '"Londrina Shadow", cursive' }}
+            style={{ fontFamily: '"Londrina Solid", cursive' }}
           >
             Privacy Policy
           </h1>
@@ -173,12 +173,11 @@ export const PrivacyPolicyPage: React.FC<PrivacyPolicyPageProps> = ({ onBack }) 
         </section>
 
         <div className="pt-6 pb-8 text-center text-zinc-500 text-sm">
-          <p 
-            className="text-lg text-white mb-1"
-            style={{ fontFamily: '"Londrina Shadow", cursive' }}
-          >
-            statik.
-          </p>
+          <img 
+            src="/assets/statiktop.png" 
+            alt="Statik" 
+            className="h-10 mx-auto mb-2"
+          />
           <p>© 2025 All rights reserved.</p>
         </div>
       </div>

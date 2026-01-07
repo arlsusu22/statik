@@ -6,6 +6,8 @@ import { getStatsForActivityType } from '../utils/activityStats';
 import { SAFE_DEFAULT_BACKGROUND } from '@/backgrounds';
 import { EffectWrapper } from './EffectWrapper';
 import { StickerWrapper } from './StickerWrapper';
+import { SplitsChart } from './SplitsChart';
+import { ElevationChart } from './ElevationChart';
 
 // Helper to darken a hex color by a percentage (0-100)
 const darkenColor = (color: string, percent: number = 40): string => {
@@ -115,6 +117,8 @@ interface OverlayRendererProps {
   isPreview?: boolean;
   customColor?: string; // Override pack default color for text
   customRouteColor?: string; // Override pack default color for route
+  customTitleColor?: string; // Override pack default color for title
+  customDateColor?: string; // Override pack default color for date
   customRouteStyle?: RouteStyle; // Override pack default route style
   showLabels?: boolean; // Toggle stat labels
   showRoute?: boolean; // Toggle route visibility
@@ -137,12 +141,21 @@ interface OverlayRendererProps {
   // Sticker outline
   statsSticker?: StickerOutline; // Sticker outline for stats
   routeSticker?: StickerOutline; // Sticker outline for route
+  // Size controls
+  routeThickness?: number; // Route stroke thickness multiplier (0.5-2)
+  textSize?: number; // Text size multiplier (0.5-2)
+  // Chart settings
+  chartBarColor?: string; // Custom bar color for charts
+  chartTextColor?: string; // Custom text color for charts
+  chartOrientation?: 'vertical' | 'horizontal'; // Chart bar orientation
+  chartBarEffect?: 'solid' | 'gradient-multi' | 'gradient-shine'; // Effect for chart bars
+  onChartTap?: () => void; // Callback when chart is tapped
 }
 
 // Per-pack scaling for horizontal layouts (route-stats variant)
 // Lower = smaller text to fit wide fonts, Higher = larger text for narrow fonts
 const PACK_HORIZONTAL_SCALE: Record<OverlayPack, number> = {
-  [OverlayPack.DOODLE]: 0.99,
+  [OverlayPack.DOODLE]: 0.75,   // Miami - wide bubble font
   [OverlayPack.GROOVY]: 0.99,
   [OverlayPack.RETRO]: 1.0,
   [OverlayPack.CYBER]: 0.95,     // VT323 is narrower than Press Start 2P
@@ -150,12 +163,12 @@ const PACK_HORIZONTAL_SCALE: Record<OverlayPack, number> = {
   [OverlayPack.CHUNKY]: 0.99,
   [OverlayPack.CHILL]: 0.99,
   [OverlayPack.CHICLE]: 1.00,
-  [OverlayPack.SLACKEY]: 0.99,
+  [OverlayPack.SLACKEY]: 0.75,   // Wide playful font
   [OverlayPack.ABRIL_FATFACE]: 1.0,
   [OverlayPack.LOBSTER]: 1.0,
   [OverlayPack.ROCK3D]: 0.7,  // Very wide 3D font
   [OverlayPack.MARKER]: 1.00,
-  [OverlayPack.GLITCH]: 0.99,
+  [OverlayPack.GLITCH]: 0.75,   // Wide glitch font
   [OverlayPack.OUTLINE]: 1.00,
   [OverlayPack.BURNED]: 0.95,
   [OverlayPack.BUNGEE]: 0.99,
@@ -201,19 +214,30 @@ const PACK_HORIZONTAL_SCALE: Record<OverlayPack, number> = {
   [OverlayPack.LT_RAILWAY]: 0.9,
   [OverlayPack.CDT_BIVAQUE]: 0.9,
   [OverlayPack.CHICOREE]: 0.85,
-  [OverlayPack.PIXEL_AWAY]: 0.8,
+  [OverlayPack.PIXEL_AWAY]: 0.65, // Arcade - wide pixel font
   [OverlayPack.HYRAX]: 0.9,
   [OverlayPack.MIDNIGHT_LETTERS]: 0.9,
   [OverlayPack.NOSE_TRANSPORT]: 0.8,
   [OverlayPack.ORBIX]: 0.9,
   [OverlayPack.QUADRIANA]: 0.85,
-  [OverlayPack.QUANTUM]: 0.7,
+  [OverlayPack.QUANTUM]: 0.55,    // Quantum - very wide font
   [OverlayPack.RUNTTI]: 0.9,
-  [OverlayPack.TACHYO]: 0.85,
-  [OverlayPack.XANMONO]: 0.7,
+  [OverlayPack.TACHYO]: 0.7,      // Rapid - speed font needs smaller
+  [OverlayPack.XANMONO]: 0.5,     // Digital - very wide monospace, needs smallest
   [OverlayPack.CAL_SANS]: 1.0,
   [OverlayPack.CHOCO_BLACK]: 0.9,
+  [OverlayPack.KIRANG]: 1.0,
+  [OverlayPack.BANGERS]: 0.95,
+  [OverlayPack.JOLLY_LODGER]: 1.0,
+  [OverlayPack.FRECKLE_FACE]: 1.0,
+  [OverlayPack.CHEWY]: 1.0,
+  [OverlayPack.LUCKIEST_GUY]: 0.95,
   [OverlayPack.MONTSERRAT_ITALIC]: 1.0,
+  [OverlayPack.COMFORTAA]: 0.9,
+  [OverlayPack.ATKINSON]: 0.85,
+  [OverlayPack.FINLANDICA]: 0.95,
+  [OverlayPack.ALLERTA]: 0.9,
+  [OverlayPack.KDAM]: 0.9,
   // Inactive packs (still need values for type safety)
   [OverlayPack.PAINT]: 1.0,
   [OverlayPack.CARTOON]: 1.0,
@@ -295,7 +319,18 @@ const PACK_TEXTPATH_SCALE: Record<OverlayPack, number> = {
   [OverlayPack.XANMONO]: 1.0,
   [OverlayPack.CAL_SANS]: 1.0,
   [OverlayPack.CHOCO_BLACK]: 1.0,
+  [OverlayPack.KIRANG]: 1.2,
+  [OverlayPack.BANGERS]: 1.1,
+  [OverlayPack.JOLLY_LODGER]: 1.1,
+  [OverlayPack.FRECKLE_FACE]: 1.0,
+  [OverlayPack.CHEWY]: 1.0,
+  [OverlayPack.LUCKIEST_GUY]: 1.1,
   [OverlayPack.MONTSERRAT_ITALIC]: 1.0,
+  [OverlayPack.COMFORTAA]: 1.0,
+  [OverlayPack.ATKINSON]: 1.0,
+  [OverlayPack.FINLANDICA]: 1.0,
+  [OverlayPack.ALLERTA]: 1.0,
+  [OverlayPack.KDAM]: 1.0,
   [OverlayPack.POPPINS]: 1.0,
   [OverlayPack.PAINT]: 1.0,
   [OverlayPack.CARTOON]: 1.0,
@@ -314,7 +349,7 @@ export const PACK_STYLES: Record<OverlayPack, {
   routeOutline: boolean;
   routeOutlineColor: string;
   routeOutlineWidth: number;
-  routeStyle: 'smooth' | 'sharp' | 'striped' | 'dotted' | 'dashed';
+  routeStyle: 'smooth' | 'sharp' | 'paint' | 'striped' | 'dotted' | 'dashed' | 'gradient';
   // Route shadow/background effect
   routeShadowOffset?: { x: number; y: number };
   routeShadowColor?: string;
@@ -331,16 +366,18 @@ export const PACK_STYLES: Record<OverlayPack, {
     font: '"Galindo", cursive',
     color: '#F5A5C8',
     labelColor: '#F5A5C8',
-    getTextStyle: () => ({
-      textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
-    }),
-    // Thick pink route with black outline like the text
+    getTextStyle: () => ({}),
+    // Pink route with black outline like the text
     routeColor: '#F5A5C8',
     routeStrokeWidth: 8,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
+    // Offset shadow for depth
+    routeShadowOffset: { x: 3, y: 3 },
+    routeShadowColor: '#000000',
+    routeShadowOpacity: 1,
   },
   [OverlayPack.GROOVY]: {
     font: '"Modak", cursive',
@@ -355,7 +392,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 9,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
     // Offset shadow to match the text style
     routeShadowOffset: { x: 4, y: 4 },
@@ -376,7 +413,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'sharp',
     // Offset shadow matching the text style
     routeShadowOffset: { x: 4, y: 4 },
@@ -396,7 +433,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 3,
     routeOutline: false,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.CARTOON]: {
@@ -408,7 +445,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.SKETCH]: {
@@ -424,7 +461,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.CYBER]: {
@@ -440,7 +477,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 4,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
     // Offset blocky shadow for pixel art vibe
     routeShadowOffset: { x: 3, y: 3 },
@@ -462,7 +499,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 4,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
     routeShadowOffset: { x: 3, y: 0 },
     routeShadowColor: '#00FF00',
@@ -476,7 +513,7 @@ export const PACK_STYLES: Record<OverlayPack, {
       fontWeight: '400',
       letterSpacing: '0.05em',
     }),
-    // Glass route - subtle transparent stroke with soft glow
+    // Glass route - subtle transparent stroke
     routeColor: 'rgba(255,255,255,0.35)',
     routeStrokeWidth: 3,
     routeOutline: false,
@@ -498,7 +535,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 8,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
     routeShadowOffset: { x: 5, y: 5 },
     routeShadowColor: '#000000',
@@ -518,7 +555,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.CHICLE]: {
@@ -534,7 +571,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.SLACKEY]: {
@@ -542,16 +579,19 @@ export const PACK_STYLES: Record<OverlayPack, {
     color: '#8cc850',
     labelColor: '#8cc850',
     getTextStyle: () => ({
-      textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000',
       fontWeight: '400',
     }),
-    // Bright route with solid black outline matching text
+    // Green route with black outline and depth
     routeColor: '#8cc850',
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
+    // Offset shadow for depth
+    routeShadowOffset: { x: 3, y: 3 },
+    routeShadowColor: '#000000',
+    routeShadowOpacity: 1,
   },
   [OverlayPack.ABRIL_FATFACE]: {
     font: '"Abril Fatface", serif',
@@ -566,7 +606,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.LOBSTER]: {
@@ -582,7 +622,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.OUTLINE]: {
@@ -598,7 +638,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 4,      // Inner hollow width
     routeOutline: true,
     routeOutlineColor: '#FFFFFF',
-    routeOutlineWidth: 2,     // Thickness of the outline stroke itself
+    routeOutlineWidth: 1,     // Thickness of the outline stroke itself
     routeStyle: 'smooth',
     routeOutlineOnly: true,   // Special flag for hollow outline mode
   },
@@ -615,7 +655,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 2,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
     routeOutlineOnly: true,
     routeSketchy: true,  // Irregular hand-drawn effect
@@ -634,7 +674,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 8,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.BURNED]: {
@@ -650,7 +690,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
     routeSketchy: true,  // Irregular burned edges
   },
@@ -666,7 +706,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#FFFFFF',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
     routeOutlineOnly: true,
   },
@@ -698,7 +738,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 8,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.RIGHTEOUS]: {
@@ -714,7 +754,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.RUBIK_DOODLE]: {
@@ -730,7 +770,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
     routeShadowOffset: { x: 3, y: 3 },
     routeShadowColor: 'rgba(0,0,0,0.5)',
@@ -750,7 +790,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.VINA_SANS]: {
@@ -767,7 +807,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 7,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
     routeShadowOffset: { x: 3, y: 3 },
     routeShadowColor: 'rgba(0,0,0,0.5)',
@@ -787,7 +827,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
   },
   [OverlayPack.BARRIO]: {
@@ -803,7 +843,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeShadowOffset: { x: 2, y: 10 },
     routeStyle: 'sharp',
     routeSketchy: true,
@@ -823,7 +863,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeOutline: true,
     routeShadowOffset: { x: 2, y: 2 },
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
     routeSketchy: true,
   },
@@ -840,7 +880,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeOutline: true,
     routeShadowOffset: { x: 2, y: 2 },
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
   },
   [OverlayPack.RUBIK_MAPS]: {
@@ -857,7 +897,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeSketchy:true,
     routeShadowOffset: { x: 2, y: 2 },
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.MIXO]: {
@@ -873,7 +913,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 4,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
   },
   [OverlayPack.CHAUMONT]: {
@@ -889,7 +929,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.BACKOUT]: {
@@ -905,7 +945,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.GULAX]: {
@@ -920,7 +960,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.LITTLE_HOPE]: {
@@ -935,7 +975,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 10,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.JUMPS_WINTER]: {
@@ -950,7 +990,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 10,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeShadowColor: '#000000',
     routeStyle: 'smooth',
   },
@@ -967,7 +1007,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.STRANGE_MARKS]: {
@@ -982,7 +1022,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
     routeSketchy: true,
   },
@@ -997,7 +1037,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 10,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.POSTBOOK]: {
@@ -1012,7 +1052,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 8,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.SUGGESTED]: {
@@ -1027,7 +1067,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 12,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.AMATIC]: {
@@ -1043,7 +1083,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.BLOX2]: {
@@ -1058,7 +1098,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'sharp',
   },
   [OverlayPack.WEDGIE]: {
@@ -1074,7 +1114,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.CWISDOM]: {
@@ -1090,7 +1130,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.FACON]: {
@@ -1106,7 +1146,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.SEFA]: {
@@ -1122,7 +1162,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.ONICK]: {
@@ -1138,7 +1178,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.HELPME]: {
@@ -1154,7 +1194,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.GRIDLOCK]: {
@@ -1170,7 +1210,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.ACHTUNG_BRAVO]: {
@@ -1186,7 +1226,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'sharp',
   },
   [OverlayPack.BOCALUPO]: {
@@ -1202,7 +1242,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.CAFE24_MOYAMOYA]: {
@@ -1217,7 +1257,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 7,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.KUBO]: {
@@ -1233,7 +1273,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
   },
   [OverlayPack.SPEED_FREAK]: {
@@ -1249,7 +1289,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
     routeShadowOffset: { x: 3, y: 3 },
     routeShadowColor: '#000000',
@@ -1268,7 +1308,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.BLOCKY]: {
@@ -1284,7 +1324,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'sharp',
   },
   [OverlayPack.FUNKWEST]: {
@@ -1300,7 +1340,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.GRITH]: {
@@ -1316,7 +1356,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.LT_RAILWAY]: {
@@ -1329,11 +1369,11 @@ export const PACK_STYLES: Record<OverlayPack, {
       textShadow: '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000',
     }),
     routeColor: '#CC3333',
-    routeStrokeWidth: 5,
-    routeOutline: true,
-    routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
-    routeStyle: 'smooth',
+    routeStrokeWidth: 3,
+    routeOutline: false,
+    routeOutlineColor: 'transparent',
+    routeOutlineWidth: 0,
+    routeStyle: 'dotted',
   },
   [OverlayPack.CDT_BIVAQUE]: {
     font: '"CDTBivaque", sans-serif',
@@ -1348,7 +1388,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.CHICOREE]: {
@@ -1364,7 +1404,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.PIXEL_AWAY]: {
@@ -1380,7 +1420,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 4,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
   },
   [OverlayPack.HYRAX]: {
@@ -1396,7 +1436,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.MIDNIGHT_LETTERS]: {
@@ -1412,7 +1452,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.NOSE_TRANSPORT]: {
@@ -1428,7 +1468,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'sharp',
   },
   [OverlayPack.ORBIX]: {
@@ -1444,7 +1484,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.QUADRIANA]: {
@@ -1460,7 +1500,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'sharp',
   },
   [OverlayPack.QUANTUM]: {
@@ -1476,7 +1516,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.RUNTTI]: {
@@ -1492,7 +1532,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   [OverlayPack.TACHYO]: {
@@ -1508,7 +1548,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 1.5,
+    routeOutlineWidth: 0.8,
     routeStyle: 'smooth',
   },
   [OverlayPack.XANMONO]: {
@@ -1524,7 +1564,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 4,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'sharp',
   },
   [OverlayPack.CAL_SANS]: {
@@ -1543,6 +1583,91 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeOutlineWidth: 0,
     routeStyle: 'smooth',
   },
+  // Playful Google Fonts packs
+  [OverlayPack.KIRANG]: {
+    font: '"Kirang Haerang", cursive',
+    color: '#FF6B9D', // Playful pink
+    labelColor: '#FF6B9D',
+    getTextStyle: () => ({
+      fontWeight: '400',
+    }),
+    routeColor: '#FFD93D', // Bright yellow
+    routeStrokeWidth: 7,
+    routeOutline: true,
+    routeOutlineColor: '#000000',
+    routeOutlineWidth: 1,
+    routeStyle: 'smooth',
+  },
+  [OverlayPack.BANGERS]: {
+    font: '"Bangers", cursive',
+    color: '#FFE135', // Sunny yellow
+    labelColor: '#FFE135',
+    getTextStyle: () => ({
+      letterSpacing: '0.05em',
+    }),
+    routeColor: '#FF6B6B', // Coral red
+    routeStrokeWidth: 8,
+    routeOutline: true,
+    routeOutlineColor: '#000000',
+    routeOutlineWidth: 1,
+    routeStyle: 'smooth',
+  },
+  [OverlayPack.JOLLY_LODGER]: {
+    font: '"Jolly Lodger", cursive',
+    color: '#7FDBFF', // Light blue
+    labelColor: '#7FDBFF',
+    getTextStyle: () => ({
+      fontWeight: '400',
+    }),
+    routeColor: '#B10DC9', // Purple
+    routeStrokeWidth: 6,
+    routeOutline: true,
+    routeOutlineColor: '#000000',
+    routeOutlineWidth: 1,
+    routeStyle: 'smooth',
+  },
+  [OverlayPack.FRECKLE_FACE]: {
+    font: '"Freckle Face", cursive',
+    color: '#2ECC40', // Bright green
+    labelColor: '#2ECC40',
+    getTextStyle: () => ({
+      fontWeight: '400',
+    }),
+    routeColor: '#FF851B', // Orange
+    routeStrokeWidth: 7,
+    routeOutline: true,
+    routeOutlineColor: '#000000',
+    routeOutlineWidth: 1,
+    routeStyle: 'smooth',
+  },
+  [OverlayPack.CHEWY]: {
+    font: '"Chewy", cursive',
+    color: '#FF9FF3', // Light pink
+    labelColor: '#FF9FF3',
+    getTextStyle: () => ({
+      fontWeight: '400',
+    }),
+    routeColor: '#54A0FF', // Sky blue
+    routeStrokeWidth: 7,
+    routeOutline: true,
+    routeOutlineColor: '#000000',
+    routeOutlineWidth: 1,
+    routeStyle: 'smooth',
+  },
+  [OverlayPack.LUCKIEST_GUY]: {
+    font: '"Luckiest Guy", cursive',
+    color: '#00D2D3', // Turquoise
+    labelColor: '#00D2D3',
+    getTextStyle: () => ({
+      fontWeight: '400',
+    }),
+    routeColor: '#FF6B6B', // Coral
+    routeStrokeWidth: 8,
+    routeOutline: true,
+    routeOutlineColor: '#000000',
+    routeOutlineWidth: 1,
+    routeStyle: 'smooth',
+  },
   [OverlayPack.MONTSERRAT_ITALIC]: {
     font: '"Montserrat Italic", sans-serif',
     color: '#508A8C',
@@ -1557,7 +1682,7 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 5,
     routeOutline: true,
     routeOutlineColor: 'rgba(0,0,0,0.5)',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
   },
   // Inactive packs (still need entries for type safety)
@@ -1570,8 +1695,90 @@ export const PACK_STYLES: Record<OverlayPack, {
     routeStrokeWidth: 6,
     routeOutline: true,
     routeOutlineColor: '#000000',
-    routeOutlineWidth: 2,
+    routeOutlineWidth: 1,
     routeStyle: 'smooth',
+  },
+  // Clean modern packs - solid color routes, thin paint style to pop
+  [OverlayPack.COMFORTAA]: {
+    font: '"Comfortaa", sans-serif',
+    color: '#FFFFFF',
+    labelColor: '#FFFFFF',
+    getTextStyle: () => ({
+      fontWeight: '700',
+      letterSpacing: '0.02em',
+      textShadow: '0 0 20px rgba(255, 107, 157, 0.8), 0 0 40px rgba(255, 107, 157, 0.4), 0 2px 4px rgba(0,0,0,0.5)',
+    }),
+    routeColor: '#FF6B9D', // Soft pink
+    routeStrokeWidth: 3,
+    routeOutline: false,
+    routeOutlineColor: 'transparent',
+    routeOutlineWidth: 0,
+    routeStyle: 'paint',
+  },
+  [OverlayPack.ATKINSON]: {
+    font: '"Atkinson Hyperlegible Mono", monospace',
+    color: '#FFFFFF',
+    labelColor: '#FFFFFF',
+    getTextStyle: () => ({
+      fontWeight: '700',
+      letterSpacing: '0.05em',
+      textShadow: '0 0 20px rgba(0, 212, 170, 0.8), 0 0 40px rgba(0, 212, 170, 0.4), 0 2px 4px rgba(0,0,0,0.5)',
+    }),
+    routeColor: '#00D4AA', // Mint green
+    routeStrokeWidth: 3,
+    routeOutline: false,
+    routeOutlineColor: 'transparent',
+    routeOutlineWidth: 0,
+    routeStyle: 'paint',
+  },
+  [OverlayPack.FINLANDICA]: {
+    font: '"Finlandica", sans-serif',
+    color: '#FFFFFF',
+    labelColor: '#FFFFFF',
+    getTextStyle: () => ({
+      fontWeight: '700',
+      letterSpacing: '0.03em',
+      textShadow: '0 0 20px rgba(91, 141, 238, 0.8), 0 0 40px rgba(91, 141, 238, 0.4), 0 2px 4px rgba(0,0,0,0.5)',
+    }),
+    routeColor: '#5B8DEE', // Nordic blue
+    routeStrokeWidth: 3,
+    routeOutline: false,
+    routeOutlineColor: 'transparent',
+    routeOutlineWidth: 0,
+    routeStyle: 'paint',
+  },
+  [OverlayPack.ALLERTA]: {
+    font: '"Allerta", sans-serif',
+    color: '#FFFFFF',
+    labelColor: '#FFFFFF',
+    getTextStyle: () => ({
+      fontWeight: '400',
+      letterSpacing: '0.04em',
+      textTransform: 'uppercase' as const,
+      textShadow: '0 0 20px rgba(255, 140, 66, 0.8), 0 0 40px rgba(255, 140, 66, 0.4), 0 2px 4px rgba(0,0,0,0.5)',
+    }),
+    routeColor: '#FF8C42', // Warm orange
+    routeStrokeWidth: 3,
+    routeOutline: false,
+    routeOutlineColor: 'transparent',
+    routeOutlineWidth: 0,
+    routeStyle: 'paint',
+  },
+  [OverlayPack.KDAM]: {
+    font: '"Kdam Thmor Pro", sans-serif',
+    color: '#FFFFFF',
+    labelColor: '#FFFFFF',
+    getTextStyle: () => ({
+      fontWeight: '400',
+      letterSpacing: '0.02em',
+      textShadow: '0 0 20px rgba(168, 85, 247, 0.8), 0 0 40px rgba(168, 85, 247, 0.4), 0 2px 4px rgba(0,0,0,0.5)',
+    }),
+    routeColor: '#A855F7', // Purple
+    routeStrokeWidth: 3,
+    routeOutline: false,
+    routeOutlineColor: 'transparent',
+    routeOutlineWidth: 0,
+    routeStyle: 'paint',
   },
 };
 
@@ -1582,6 +1789,8 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   isPreview = false,
   customColor,
   customRouteColor,
+  customTitleColor,
+  customDateColor,
   customRouteStyle,
   showLabels = true,
   showRoute = true,
@@ -1601,6 +1810,13 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   routeEffect,
   statsSticker,
   routeSticker,
+  routeThickness = 1,
+  textSize = 1,
+  chartBarColor,
+  chartTextColor,
+  chartOrientation = 'horizontal', // Default to horizontal for long runs
+  chartBarEffect = 'solid',
+  onChartTap,
 }) {
   const style = PACK_STYLES[pack];
   const allStats = getStatsForActivityType(activity);
@@ -1644,9 +1860,16 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
 
   // Helper to update transforms - updates both state and returns new value immediately
   const updateElementTransform = (elementId: string, newTransform: { x: number; y: number; scale: number; rotation: number }) => {
+    // Validate all values to prevent NaN from breaking the element
+    const safeTransform = {
+      x: isFinite(newTransform.x) ? newTransform.x : 0,
+      y: isFinite(newTransform.y) ? newTransform.y : 0,
+      scale: isFinite(newTransform.scale) && newTransform.scale > 0 ? newTransform.scale : 1,
+      rotation: isFinite(newTransform.rotation) ? newTransform.rotation : 0,
+    };
     setElementTransforms(prev => ({
       ...prev,
-      [elementId]: newTransform,
+      [elementId]: safeTransform,
     }));
   };
 
@@ -1660,22 +1883,28 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
     elementId: string;
     children: React.ReactNode;
     className?: string;
-  }> = ({ elementId, children, className = '' }) => {
+    style?: React.CSSProperties;
+    onTap?: () => void; // Callback for tap (click without drag)
+  }> = ({ elementId, children, className = '', style: initialStyle = {} as React.CSSProperties, onTap }) => {
     const transform = getElementTransform(elementId);
     const isSelected = selectedElement === elementId;
     const elementRef = React.useRef<HTMLDivElement>(null);
     const isResizing = React.useRef(false);
     const isDragging = React.useRef(false);
+    const hasMoved = React.useRef(false); // Track if touch moved significantly
     const startPos = React.useRef({ x: 0, y: 0 });
     const startTransform = React.useRef({ x: 0, y: 0, scale: 1, rotation: 0 });
     const currentTransformRef = React.useRef({ x: 0, y: 0, scale: 1, rotation: 0 });
     const pinchStart = React.useRef({ distance: 0, angle: 0 });
+    
+    // Parse initial transform from style (e.g., translateX(-50%))
+    const baseTransform = initialStyle.transform || '';
 
     // Helper to update transform directly on DOM for smooth movement
     const updateTransformDirect = (x: number, y: number, scale: number, rotation: number) => {
       currentTransformRef.current = { x, y, scale, rotation };
       if (elementRef.current) {
-        elementRef.current.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
+        elementRef.current.style.transform = `${baseTransform} translate(${x}px, ${y}px) scale(${scale}) rotate(${rotation}deg)`;
       }
     };
 
@@ -1739,16 +1968,25 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
       startTransform.current = { ...current };
       currentTransformRef.current = { ...current };
       isDragging.current = true;
+      hasMoved.current = false; // Reset movement tracking
       
       if (e.touches.length === 1) {
         startPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        // Reset pinch to prevent stale values
+        pinchStart.current = { distance: 0, angle: 0 };
       } else if (e.touches.length === 2) {
+        hasMoved.current = true; // Pinch gesture counts as movement
         const dx = e.touches[1].clientX - e.touches[0].clientX;
         const dy = e.touches[1].clientY - e.touches[0].clientY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
         pinchStart.current = {
-          distance: Math.sqrt(dx * dx + dy * dy),
+          distance: Math.max(distance, 1), // Prevent divide by zero
           angle: Math.atan2(dy, dx) * (180 / Math.PI)
         };
+        // Also update start position for when user goes back to 1 finger
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        startPos.current = { x: midX, y: midY };
       }
     };
 
@@ -1758,20 +1996,44 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
       if (e.touches.length === 1) {
         const deltaX = e.touches[0].clientX - startPos.current.x;
         const deltaY = e.touches[0].clientY - startPos.current.y;
+        
+        // Check if moved more than 5px threshold - counts as drag, not tap
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+          hasMoved.current = true;
+        }
+        
         const newX = startTransform.current.x + deltaX;
         const newY = startTransform.current.y + deltaY;
         // Direct DOM update for smooth movement
-        updateTransformDirect(newX, newY, startTransform.current.scale, startTransform.current.rotation);
+        updateTransformDirect(newX, newY, currentTransformRef.current.scale, currentTransformRef.current.rotation);
       } else if (e.touches.length === 2) {
+        hasMoved.current = true; // Pinch gesture counts as movement
         const dx = e.touches[1].clientX - e.touches[0].clientX;
         const dy = e.touches[1].clientY - e.touches[0].clientY;
         const currentDistance = Math.sqrt(dx * dx + dy * dy);
         const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
         
+        // Guard against invalid pinch start
+        if (pinchStart.current.distance < 1) {
+          pinchStart.current = {
+            distance: Math.max(currentDistance, 1),
+            angle: currentAngle
+          };
+          return;
+        }
+        
         const scaleChange = currentDistance / pinchStart.current.distance;
         const angleChange = currentAngle - pinchStart.current.angle;
+        
+        // Validate values to prevent NaN
+        if (!isFinite(scaleChange) || !isFinite(angleChange)) return;
+        
         const newScale = Math.max(0.3, Math.min(3, startTransform.current.scale * scaleChange));
         const newRotation = startTransform.current.rotation + angleChange;
+        
+        // Final NaN check
+        if (!isFinite(newScale) || !isFinite(newRotation)) return;
+        
         // Direct DOM update for smooth pinch/rotate
         updateTransformDirect(startTransform.current.x, startTransform.current.y, newScale, newRotation);
       }
@@ -1780,6 +2042,11 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
     const handleTouchEnd = (e: React.TouchEvent) => {
       if (!isDragging.current) return;
       isDragging.current = false;
+      
+      // If touch didn't move significantly, treat as a tap
+      if (!hasMoved.current && onTap) {
+        onTap();
+      }
       
       // Sync final position to state from our tracked ref
       updateElementTransform(elementId, { ...currentTransformRef.current });
@@ -1817,109 +2084,249 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
       window.addEventListener('pointerup', handlePointerUp);
     };
 
+    // Combine base transform with user's drag transform
+    const combinedTransform = `${baseTransform} translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`;
+
     return (
       <div
         ref={elementRef}
         className={`touch-none select-none cursor-move ${className}`}
         style={{
-          transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`,
+          ...initialStyle,
+          transform: combinedTransform,
           transformOrigin: 'center center',
-          position: 'relative',
           willChange: 'transform',
           // Prevent layout shifts from selection handles
           isolation: 'isolate',
-        }}
+          // Prevent iOS text selection and callout
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+          WebkitTouchCallout: 'none',
+        } as React.CSSProperties}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         onPointerDown={handlePointerDown}
       >
         {children}
-        {isSelected && (
-          <div 
-            className="absolute rounded-lg pointer-events-none"
-            style={{
-              // Use fixed inset values to prevent any layout impact
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              boxShadow: 'inset 0 0 0 2px #CCFF00',
-            }}
-          >
-            {/* Interactive resize handles - positioned absolutely so they don't affect layout */}
-            <div 
-              className="absolute w-4 h-4 bg-[#CCFF00] rounded-full pointer-events-auto cursor-nw-resize touch-none"
-              style={{ top: -8, left: -8 }}
-              onPointerDown={(e) => handleResizeStart(e, 'top-left')}
-              onTouchStart={(e) => handleResizeStart(e, 'top-left')}
-            />
-            <div 
-              className="absolute w-4 h-4 bg-[#CCFF00] rounded-full pointer-events-auto cursor-ne-resize touch-none"
-              style={{ top: -8, right: -8 }}
-              onPointerDown={(e) => handleResizeStart(e, 'top-right')}
-              onTouchStart={(e) => handleResizeStart(e, 'top-right')}
-            />
-            <div 
-              className="absolute w-4 h-4 bg-[#CCFF00] rounded-full pointer-events-auto cursor-sw-resize touch-none"
-              style={{ bottom: -8, left: -8 }}
-              onPointerDown={(e) => handleResizeStart(e, 'bottom-left')}
-              onTouchStart={(e) => handleResizeStart(e, 'bottom-left')}
-            />
-            <div 
-              className="absolute w-4 h-4 bg-[#CCFF00] rounded-full pointer-events-auto cursor-se-resize touch-none"
-              style={{ bottom: -8, right: -8 }}
-              onPointerDown={(e) => handleResizeStart(e, 'bottom-right')}
-              onTouchStart={(e) => handleResizeStart(e, 'bottom-right')}
-            />
-          </div>
-        )}
       </div>
     );
   };
 
-  // Base outline shadow that ensures visibility on any background
-  const baseOutlineShadow = '2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000';
+  // === TEXT STYLING LOGIC (CLEANED UP) ===
   
-  // Packs that should NOT have forced outline (clean minimal look or gradient text)
-  const noOutlinePacks = [OverlayPack.CAL_SANS, OverlayPack.GLASS];
-  const hasGradientText = style.hasGradientText === true;
-  const skipOutline = noOutlinePacks.includes(pack) || hasGradientText;
-  
-  // Get pack's text style - pass custom color for gradient packs
+  // Get pack's text style
   const packTextStyle = style.getTextStyle(customColor);
+  const hasGradientText = style.hasGradientText === true;
   
-  // Common text style with custom color support
-  // Most packs get forced outline for visibility, but gradient/minimal packs skip it
-  const textStyle: React.CSSProperties = hasGradientText
-    ? {
-        // For gradient packs: use the pack's styling directly (includes gradient background)
-        fontFamily: style.font,
-        ...packTextStyle,
-      }
-    : {
-        fontFamily: style.font,
-        color: activeColor,
-        ...packTextStyle,
-        // For outline packs: ensure strong outline. For no-outline packs: use pack's shadow or none
-        textShadow: skipOutline 
-          ? (packTextStyle.textShadow || 'none')
-          : (packTextStyle.textShadow 
-              ? `${packTextStyle.textShadow}, ${baseOutlineShadow}`
-              : baseOutlineShadow),
-        // Add webkit stroke for mobile canvas capture compatibility (skip for minimal packs)
-        WebkitTextStroke: skipOutline ? 'none' : (packTextStyle.WebkitTextStroke || '1.5px #000'),
-        paintOrder: 'stroke fill',
-      };
+  // Clean modern packs skip outlines - they rely on font weight and clean look to pop
+  const cleanModernPacks: OverlayPack[] = [
+    OverlayPack.COMFORTAA,
+    OverlayPack.ATKINSON,
+    OverlayPack.FINLANDICA,
+    OverlayPack.ALLERTA,
+    OverlayPack.KDAM,
+  ];
+  const skipOutline = cleanModernPacks.includes(pack);
   
-  // Label style - similar but thinner stroke for smaller text
-  const labelOutlineStyle: React.CSSProperties = skipOutline 
-    ? {} 
-    : {
-        textShadow: baseOutlineShadow,
-        WebkitTextStroke: '1px #000',
+  // Packs with depth shadow effect (solid 3D offset)
+  // Clean packs don't use depth shadow
+  const hasDepthShadow = !skipOutline;
+  
+  // Depth shadow settings
+  const depthColor = '#000000';
+  const depthOffset = 1;
+  
+  // Global outline settings (same as routes - Canvas style)
+  const globalOutlineColor = '#000000';
+  const globalOutlineWidth = 2;
+  
+  // Global route outline settings (Canvas/CAFE24_MOYAMOYA style for all packs)
+  // Clean modern packs skip route outline - use pack's routeOutline setting
+  const cleanModernRoutePacks: OverlayPack[] = [
+    OverlayPack.COMFORTAA,
+    OverlayPack.ATKINSON,
+    OverlayPack.FINLANDICA,
+    OverlayPack.ALLERTA,
+    OverlayPack.KDAM,
+  ];
+  const usePackRouteOutline = cleanModernRoutePacks.includes(pack);
+  const globalRouteOutline = usePackRouteOutline ? style.routeOutline : true;
+  const globalRouteOutlineColor = usePackRouteOutline ? style.routeOutlineColor : '#000000';
+  const globalRouteOutlineWidth = usePackRouteOutline ? style.routeOutlineWidth : 2;
+  
+  // Build text style
+  let textStyle: React.CSSProperties;
+  
+  if (hasGradientText) {
+    textStyle = {
+      fontFamily: style.font,
+      ...packTextStyle,
+    };
+  } else if (hasDepthShadow) {
+    // Depth packs: use WebkitTextStroke for outline only, no shadow CSS
+    textStyle = {
+      fontFamily: style.font,
+      color: activeColor,
+      fontWeight: packTextStyle.fontWeight || undefined,
+      WebkitTextStroke: globalOutlineWidth + 'px ' + globalOutlineColor,
+      paintOrder: 'stroke fill',
+    };
+  } else {
+    const { textShadow: _removed, ...cleanPackStyle } = packTextStyle;
+    textStyle = {
+      fontFamily: style.font,
+      color: activeColor,
+      ...cleanPackStyle,
+      ...(skipOutline ? {} : {
+        WebkitTextStroke: globalOutlineWidth + 'px ' + globalOutlineColor,
         paintOrder: 'stroke fill',
-      };
+      }),
+    };
+  }
+  
+  // Label outline style
+  let labelOutlineStyle: React.CSSProperties;
+  
+  if (skipOutline) {
+    labelOutlineStyle = {};
+  } else if (hasDepthShadow) {
+    labelOutlineStyle = {
+      WebkitTextStroke: '1px ' + globalOutlineColor,
+      paintOrder: 'stroke fill',
+    };
+  } else {
+    labelOutlineStyle = {
+      WebkitTextStroke: '1px ' + globalOutlineColor,
+      paintOrder: 'stroke fill',
+    };
+  }
+  
+  // Depth text using CSS Grid to stack shadow and main text in the same cell
+  // Grid ensures perfect alignment regardless of parent container
+  const DepthText: React.FC<{
+    children: React.ReactNode;
+    className?: string;
+    fontSize?: number;
+    fontWeight?: string | number;
+    isLabel?: boolean;
+    isBlock?: boolean;
+  }> = ({ children, className, fontSize = 16, fontWeight = 'normal', isLabel = false, isBlock = false }) => {
+    const text = String(children);
+    
+    const textColor = activeColor;
+    const rawFont = style.font;
+    const textWeight = fontWeight || packTextStyle.fontWeight || 'normal';
+    
+    // Use CSS Grid to stack elements - both occupy grid-area: 1/1
+    // This ensures perfect overlap regardless of parent layout
+    const containerStyle: React.CSSProperties = {
+      display: isBlock ? 'grid' : 'inline-grid',
+      // Single cell grid where both children stack
+      // Padding prevents clipping of stroke/shadow
+      padding: '4px',
+    };
+    
+    const textBaseStyle: React.CSSProperties = {
+      fontFamily: rawFont,
+      fontSize: `${fontSize}px`,
+      fontWeight: textWeight,
+      lineHeight: 1.2,
+      whiteSpace: 'nowrap',
+      gridArea: '1 / 1', // Both elements in same cell
+    };
+    
+    // Shadow layer - solid black text offset behind (no stroke needed)
+    const shadowStyle: React.CSSProperties = {
+      ...textBaseStyle,
+      color: depthColor,
+      transform: `translate(${depthOffset}px, ${depthOffset}px)`,
+      zIndex: 0,
+    };
+    
+    // Main text layer on top - solid color + 2px black outline (same as routes)
+    const mainStyle: React.CSSProperties = {
+      ...textBaseStyle,
+      color: textColor,
+      WebkitTextStroke: globalOutlineWidth + 'px ' + globalOutlineColor,
+      paintOrder: 'stroke fill',
+      zIndex: 1,
+    };
+    
+    return (
+      <span className={className} style={containerStyle}>
+        <span style={shadowStyle}>{text}</span>
+        <span style={mainStyle}>{text}</span>
+      </span>
+    );
+  };
+  
+  // Stat label component with depth shadow support
+  const StatLabel: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
+    const labelStyle: React.CSSProperties = {
+      fontFamily: style.font,
+      color: activeColor,
+      ...labelOutlineStyle,
+    };
+    
+    // For non-depth packs, use simple HTML
+    if (!hasDepthShadow) {
+      return <span className={className} style={labelStyle}>{children}</span>;
+    }
+    
+    // For depth packs, extract font size from className
+    let fontSize = 10;
+    if (className?.includes('text-[4px]')) fontSize = 4;
+    else if (className?.includes('text-[5px]')) fontSize = 5;
+    else if (className?.includes('text-[8px]')) fontSize = 8;
+    else if (className?.includes('text-[9px]')) fontSize = 9;
+    else if (className?.includes('text-[10px]')) fontSize = 10;
+    else if (className?.includes('text-xs')) fontSize = 12;
+    else if (className?.includes('text-sm')) fontSize = 14;
+    
+    const isBlock = className?.includes('block');
+    
+    return <DepthText className={className} fontSize={fontSize} isLabel={true} isBlock={isBlock}>{children}</DepthText>;
+  };
+  
+  // Stat value component with depth shadow support
+  const StatValue: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => {
+    // For non-depth packs, use simple HTML
+    if (!hasDepthShadow) {
+      return <span className={className} style={textStyle}>{children}</span>;
+    }
+    
+    // For depth packs, extract font size from className
+    let fontSize = 16;
+    let fontWeight: string | number = packTextStyle.fontWeight || 'bold';
+    
+    if (className?.includes('text-[7px]')) fontSize = 7;
+    else if (className?.includes('text-[8px]')) fontSize = 8;
+    else if (className?.includes('text-xs')) fontSize = 12;
+    else if (className?.includes('text-sm')) fontSize = 14;
+    else if (className?.includes('text-base')) fontSize = 16;
+    else if (className?.includes('text-lg')) fontSize = 18;
+    else if (className?.includes('text-xl')) fontSize = 20;
+    else if (className?.includes('text-2xl')) fontSize = 24;
+    else if (className?.includes('text-3xl')) fontSize = 30;
+    else if (className?.includes('text-4xl')) fontSize = 36;
+    else if (className?.includes('text-5xl')) fontSize = 48;
+    else if (className?.includes('text-6xl')) fontSize = 60;
+    
+    if (className?.includes('font-black')) fontWeight = 900;
+    else if (className?.includes('font-bold')) fontWeight = 700;
+    else if (className?.includes('font-medium')) fontWeight = 500;
+    
+    // Values with 'block' class should be block elements
+    const isBlock = className?.includes('block');
+    
+    return <DepthText className={className} fontSize={fontSize} fontWeight={fontWeight} isBlock={isBlock}>{children}</DepthText>;
+  };
+  
+  // Text scale style for adjustable text size
+  const textScaleStyle: React.CSSProperties = textSize !== 1 
+    ? { transform: `scale(${textSize})`, transformOrigin: 'center' }
+    : {};
   
   // Route color: use custom route color if provided, otherwise use pack default
   // Route color is independent from text color - only changes when explicitly set
@@ -1931,25 +2338,14 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   // Helper function to get CSS filter styles for effects
   const getEffectFilter = (effect?: ElementEffect): React.CSSProperties => {
     if (!effect || effect.type === 'none') return {};
-    
-    const intensity = effect.intensity / 100;
-    
-    switch (effect.type) {
-      case 'blur':
-        return { filter: `blur(${intensity * 5}px)` };
-      case 'grain':
-      case 'glitch':
-        // These require SVG filters - will be handled by EffectWrapper
-        return {};
-      default:
-        return {};
-    }
+    // All effects are handled by EffectWrapper
+    return {};
   };
   
   // Check if we need SVG-based effects (more complex effects)
   const needsSvgEffect = (effect?: ElementEffect) => {
     if (!effect || effect.type === 'none') return false;
-    return ['grain', 'glitch'].includes(effect.type);
+    return ['glitch', 'retro', 'shiny'].includes(effect.type);
   };
 
   // Check if we need sticker outline
@@ -1961,8 +2357,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   const MaybeEffect: React.FC<{ 
     effect?: ElementEffect; 
     sticker?: StickerOutline;
+    color?: string;
     children: React.ReactNode 
-  }> = ({ effect, sticker, children }) => {
+  }> = ({ effect, sticker, color, children }) => {
     let content = <>{children}</>;
     
     // Apply sticker first (inner layer)
@@ -1972,7 +2369,7 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
     
     // Apply effect second (outer layer)
     if (needsSvgEffect(effect)) {
-      content = <EffectWrapper effect={effect}>{content}</EffectWrapper>;
+      content = <EffectWrapper effect={effect} color={color}>{content}</EffectWrapper>;
     }
     
     return content;
@@ -2011,12 +2408,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
         style={{ cursor: isEditing ? 'pointer' : 'default' }}
       >
         <TransformableWrapper elementId="title" className={isPreview ? 'mb-2' : 'mb-4'}>
-          <div 
-            className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}
-            style={textStyle}
-          >
+          <StatValue className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}>
             {activityTitle}
-          </div>
+          </StatValue>
         </TransformableWrapper>
       </div>
     );
@@ -2031,12 +2425,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
         style={{ cursor: isEditing ? 'pointer' : 'default' }}
       >
         <TransformableWrapper elementId="date" className={isPreview ? 'mt-2' : 'mt-4'}>
-          <div 
-            className={`text-center ${isPreview ? 'text-[8px]' : 'text-sm'} opacity-80`}
-            style={textStyle}
-          >
+          <StatValue className={`text-center ${isPreview ? 'text-[8px]' : 'text-sm'} opacity-80`}>
             {activityDate}
-          </div>
+          </StatValue>
         </TransformableWrapper>
       </div>
     );
@@ -2057,25 +2448,19 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
               onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
               style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
             >
-              <MaybeEffect effect={statsEffect} sticker={statsSticker}>
+              <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
                 <TransformableWrapper elementId="stats" className={`${isPreview ? 'px-2' : 'px-6'}`}>
-                  <div className={`text-center ${isPreview ? 'space-y-1' : 'space-y-2'}`}>
+                  <div className={`text-center ${isPreview ? 'space-y-1' : 'space-y-2'}`} style={textScaleStyle}>
                     {(isPreview ? prioritizedStats.slice(0, 3) : prioritizedStats).map((stat, i) => (
                       <div key={i} className="whitespace-nowrap">
                         {showLabels && (
-                          <span 
-                            className={`${isPreview ? 'text-[6px]' : 'text-xs'} uppercase tracking-wider block`}
-                            style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                          >
+                          <StatLabel className={`${isPreview ? 'text-[6px]' : 'text-xs'} uppercase tracking-wider block`}>
                             {stat.label}
-                          </span>
+                          </StatLabel>
                         )}
-                        <span 
-                          className={`${textSizes.xlarge} font-bold block leading-none`}
-                          style={textStyle}
-                        >
+                        <StatValue className={`${textSizes.xlarge} font-bold block leading-none`}>
                           {stat.value}
-                        </span>
+                        </StatValue>
                       </div>
                     ))}
                   </div>
@@ -2089,7 +2474,7 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
                 style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
               >
-                <MaybeEffect effect={routeEffect} sticker={routeSticker}>
+                <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
                   <TransformableWrapper elementId="route" className={`${isPreview ? 'mt-3 w-24 h-16' : 'mt-4 w-48 h-32'}`}>
                     <div className="w-full h-full flex items-center justify-center overflow-hidden">
                       <RoutePolyline
@@ -2100,18 +2485,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                         maxHeight={isPreview ? 150 : 300}
                         maxWidth={isPreview ? 224 : 450}
                         opacity={1}
-                        strokeWidth={isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth}
+                        strokeWidth={(isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth) * routeThickness}
                         strokeColor={routeColor}
                         style={customRouteStyle || style.routeStyle}
-                        outline={style.routeOutline}
-                        outlineColor={style.routeOutlineColor}
-                        outlineWidth={isPreview ? style.routeOutlineWidth * 0.6 : style.routeOutlineWidth}
-                        outlineOnly={style.routeOutlineOnly}
-                        sketchy={style.routeSketchy}
-                        shadowOffset={style.routeShadowOffset}
-                        shadowColor={style.routeShadowColor}
-                        shadowOpacity={style.routeShadowOpacity}
-                        pixelated={style.routePixelated}
+                        outline={globalRouteOutline}
+                        outlineColor={globalRouteOutlineColor}
+                        outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.6 : globalRouteOutlineWidth) * routeThickness}
+                        outlineOnly={false}
+                        sketchy={false}
+                        pixelated={false}
                         isEditing={false}
                         isSelected={false}
                       />
@@ -2145,18 +2527,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                     y={0}
                     scale={isPreview ? 0.6 : 0.9}
                     opacity={1}
-                    strokeWidth={isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth}
+                    strokeWidth={(isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth) * routeThickness}
                     strokeColor={routeColor}
                     style={customRouteStyle || style.routeStyle}
-                    outline={style.routeOutline}
-                    outlineColor={style.routeOutlineColor}
-                    outlineWidth={isPreview ? style.routeOutlineWidth * 0.6 : style.routeOutlineWidth}
-                    outlineOnly={style.routeOutlineOnly}
-                    sketchy={style.routeSketchy}
-                    shadowOffset={style.routeShadowOffset}
-                    shadowColor={style.routeShadowColor}
-                    shadowOpacity={style.routeShadowOpacity}
-                    pixelated={style.routePixelated}
+                    outline={globalRouteOutline}
+                    outlineColor={globalRouteOutlineColor}
+                    outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.6 : globalRouteOutlineWidth) * routeThickness}
+                    outlineOnly={false}
+                    sketchy={false}
+                    pixelated={false}
                     isEditing={false}
                     isSelected={false}
                   />
@@ -2183,8 +2562,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
         const routeStatsTextSize = isPreview 
           ? 'text-[8px]'  // Very small for preview thumbnails
           : (
-            horizontalScale < 0.7 ? 'text-xs' :        // Very wide fonts - smallest
-            horizontalScale < 0.85 ? 'text-sm' :       // Wide fonts
+            horizontalScale < 0.55 ? 'text-[10px]' :   // Extremely wide fonts - smallest (Digital, Quantum)
+            horizontalScale < 0.7 ? 'text-xs' :        // Very wide fonts
+            horizontalScale < 0.8 ? 'text-sm' :        // Wide fonts (Miami, Slackey, Glitch, Rapid)
             horizontalScale < 0.96 ? 'text-base' :     // Medium-wide fonts
             statsCount > 3 ? 'text-base' :             // Many stats
             'text-lg'                                  // Normal fonts, few stats
@@ -2207,7 +2587,7 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
                 className={isPreview ? 'mb-2' : 'mb-4'}
               >
-                <MaybeEffect effect={routeEffect} sticker={routeSticker}>
+                <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
                   <TransformableWrapper elementId="route" className={`${isPreview ? 'w-28 h-16' : 'w-72 h-44'}`}>
                     <div className="w-full h-full flex items-center justify-center overflow-hidden">
                       <RoutePolyline
@@ -2218,18 +2598,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                         maxHeight={isPreview ? 64 : 176}
                         maxWidth={isPreview ? 112 : 288}
                         opacity={1}
-                        strokeWidth={isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth}
+                        strokeWidth={(isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth) * routeThickness}
                         strokeColor={routeColor}
                         style={customRouteStyle || style.routeStyle}
-                        outline={style.routeOutline}
-                        outlineColor={style.routeOutlineColor}
-                        outlineWidth={isPreview ? style.routeOutlineWidth * 0.6 : style.routeOutlineWidth}
-                        outlineOnly={style.routeOutlineOnly}
-                        sketchy={style.routeSketchy}
-                        shadowOffset={style.routeShadowOffset}
-                        shadowColor={style.routeShadowColor}
-                        shadowOpacity={style.routeShadowOpacity}
-                        pixelated={style.routePixelated}
+                        outline={globalRouteOutline}
+                        outlineColor={globalRouteOutlineColor}
+                        outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.6 : globalRouteOutlineWidth) * routeThickness}
+                        outlineOnly={false}
+                        sketchy={false}
+                        pixelated={false}
                         isEditing={false}
                         isSelected={false}
                       />
@@ -2244,26 +2621,20 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
               onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
               style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
             >
-              <MaybeEffect effect={statsEffect} sticker={statsSticker}>
+              <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
                 <TransformableWrapper elementId="stats" className={`${isPreview ? 'mt-1' : 'mt-3'}`}>
-                  <div className="flex flex-col items-center gap-1">
+                  <div className="flex flex-col items-center gap-1" style={textScaleStyle}>
                     {/* First row - up to 3 stats */}
                     <div className={`flex items-center justify-center ${isPreview ? 'gap-1' : 'gap-x-3'}`}>
                       {firstRowStats.map((stat, i) => (
                         <div key={i} className="text-center whitespace-nowrap">
-                          <span 
-                            className={`${routeStatsTextSize} font-bold`}
-                            style={textStyle}
-                          >
+                          <StatValue className={`${routeStatsTextSize} font-bold`}>
                             {stat.value}
-                          </span>
+                          </StatValue>
                           {showLabels && !isPreview && (
-                            <span 
-                              className="text-[9px] uppercase tracking-widest block mt-0.5"
-                              style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                            >
+                            <StatLabel className="text-[9px] uppercase tracking-widest block mt-0.5">
                               {stat.label}
-                            </span>
+                            </StatLabel>
                           )}
                         </div>
                       ))}
@@ -2273,19 +2644,13 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                       <div className={`flex items-center justify-center ${isPreview ? 'gap-1' : 'gap-x-3'}`}>
                         {secondRowStats.map((stat, i) => (
                           <div key={i + 3} className="text-center whitespace-nowrap">
-                            <span 
-                              className={`${routeStatsTextSize} font-bold`}
-                              style={textStyle}
-                            >
+                            <StatValue className={`${routeStatsTextSize} font-bold`}>
                               {stat.value}
-                            </span>
+                            </StatValue>
                             {showLabels && (
-                              <span 
-                                className="text-[9px] uppercase tracking-widest block mt-0.5"
-                                style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                              >
+                              <StatLabel className="text-[9px] uppercase tracking-widest block mt-0.5">
                                 {stat.label}
-                              </span>
+                              </StatLabel>
                             )}
                           </div>
                         ))}
@@ -2309,12 +2674,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 style={{ cursor: isEditing ? 'pointer' : 'default' }}
               >
                 <TransformableWrapper elementId="title">
-                  <div 
-                    className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}
-                    style={textStyle}
-                  >
+                  <StatValue className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}>
                     {activityTitle}
-                  </div>
+                  </StatValue>
                 </TransformableWrapper>
               </div>
             )}
@@ -2329,19 +2691,13 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 <div className={`${isPreview ? 'space-y-0' : 'space-y-1'} text-center`}>
                   {prioritizedStats.map((stat, i) => (
                     <div key={i} className={`flex items-baseline justify-center ${isPreview ? 'gap-1' : 'gap-2'}`}>
-                      <span 
-                        className={`${textSizes.large} font-bold`}
-                        style={textStyle}
-                      >
+                      <StatValue className={`${textSizes.large} font-bold`}>
                         {stat.value}
-                      </span>
+                      </StatValue>
                       {showLabels && !isPreview && (
-                        <span 
-                          className="text-[10px] uppercase tracking-widest"
-                          style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                        >
+                        <StatLabel className="text-[10px] uppercase tracking-widest">
                           {stat.label}
-                        </span>
+                        </StatLabel>
                       )}
                     </div>
                   ))}
@@ -2359,12 +2715,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
         return (
           <div className={`absolute inset-0 flex items-center justify-center ${isPreview ? 'px-2' : 'px-6'}`}>
             <TransformableWrapper elementId="title">
-              <span 
-                className={`${textSizes.xlarge} font-bold text-center leading-tight`}
-                style={textStyle}
-              >
+              <StatValue className={`${textSizes.xlarge} font-bold text-center leading-tight`}>
                 {titleText}
-              </span>
+              </StatValue>
             </TransformableWrapper>
           </div>
         );
@@ -2392,12 +2745,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 style={{ cursor: isEditing ? 'pointer' : 'default' }}
               >
                 <TransformableWrapper elementId="title">
-                  <div 
-                    className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}
-                    style={textStyle}
-                  >
+                  <StatValue className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}>
                     {activityTitle}
-                  </div>
+                  </StatValue>
                 </TransformableWrapper>
               </div>
             )}
@@ -2417,18 +2767,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                   maxHeight={isPreview ? 194 : 480}
                   maxWidth={isPreview ? 194 : 480}
                   opacity={1}
-                  strokeWidth={isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth}
+                  strokeWidth={(isPreview ? style.routeStrokeWidth * 0.6 : style.routeStrokeWidth) * routeThickness}
                   strokeColor={routeColor}
                   style={customRouteStyle || style.routeStyle}
-                  outline={style.routeOutline}
-                  outlineColor={style.routeOutlineColor}
-                  outlineWidth={isPreview ? style.routeOutlineWidth * 0.6 : style.routeOutlineWidth}
-                  outlineOnly={style.routeOutlineOnly}
-                  sketchy={style.routeSketchy}
-                  shadowOffset={style.routeShadowOffset}
-                  shadowColor={style.routeShadowColor}
-                  shadowOpacity={style.routeShadowOpacity}
-                  pixelated={style.routePixelated}
+                  outline={globalRouteOutline}
+                  outlineColor={globalRouteOutlineColor}
+                  outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.6 : globalRouteOutlineWidth) * routeThickness}
+                  outlineOnly={false}
+                  sketchy={false}
+                  pixelated={false}
                   isEditing={false}
                   isSelected={false}
                 />
@@ -2451,19 +2798,13 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                   <TransformableWrapper elementId={`stat-${i}`}>
                     <div className="text-center whitespace-nowrap">
                       {showLabels && (
-                        <span 
-                          className={`${isPreview ? 'text-[5px]' : 'text-[10px]'} uppercase tracking-wider block`}
-                          style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                        >
+                        <StatLabel className={`${isPreview ? 'text-[5px]' : 'text-[10px]'} uppercase tracking-wider block`}>
                           {stat.label}
-                        </span>
+                        </StatLabel>
                       )}
-                      <span 
-                        className={`${isPreview ? 'text-xs' : 'text-xl'} font-bold block leading-none`}
-                        style={textStyle}
-                      >
+                      <StatValue className={`${isPreview ? 'text-xs' : 'text-xl'} font-bold block leading-none`}>
                         {stat.value}
-                      </span>
+                      </StatValue>
                     </div>
                   </TransformableWrapper>
                 </div>
@@ -2478,12 +2819,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 style={{ cursor: isEditing ? 'pointer' : 'default' }}
               >
                 <TransformableWrapper elementId="date">
-                  <div 
-                    className={`text-center ${isPreview ? 'text-[8px]' : 'text-sm'} opacity-80`}
-                    style={textStyle}
-                  >
+                  <StatValue className={`text-center ${isPreview ? 'text-[8px]' : 'text-sm'} opacity-80`}>
                     {activityDate}
-                  </div>
+                  </StatValue>
                 </TransformableWrapper>
               </div>
             )}
@@ -2506,7 +2844,7 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
                 className={isPreview ? 'mb-2' : 'mb-4'}
               >
-                <MaybeEffect effect={routeEffect} sticker={routeSticker}>
+                <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
                   <TransformableWrapper elementId="route" className={`${isPreview ? 'w-20 h-12' : 'w-40 h-28'}`}>
                     <div className="w-full h-full flex items-center justify-center overflow-hidden">
                       <RoutePolyline
@@ -2517,18 +2855,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                         maxHeight={isPreview ? 114 : 270}
                         maxWidth={isPreview ? 180 : 374}
                         opacity={1}
-                        strokeWidth={isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.8}
+                        strokeWidth={(isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.8) * routeThickness}
                         strokeColor={routeColor}
                         style={customRouteStyle || style.routeStyle}
-                        outline={style.routeOutline}
-                        outlineColor={style.routeOutlineColor}
-                        outlineWidth={isPreview ? style.routeOutlineWidth * 0.5 : style.routeOutlineWidth * 0.8}
-                        outlineOnly={style.routeOutlineOnly}
-                        sketchy={style.routeSketchy}
-                        shadowOffset={style.routeShadowOffset}
-                        shadowColor={style.routeShadowColor}
-                        shadowOpacity={style.routeShadowOpacity}
-                        pixelated={style.routePixelated}
+                        outline={globalRouteOutline}
+                        outlineColor={globalRouteOutlineColor}
+                        outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.5 : globalRouteOutlineWidth * 0.8) * routeThickness}
+                        outlineOnly={false}
+                        sketchy={false}
+                        pixelated={false}
                         isEditing={false}
                         isSelected={false}
                       />
@@ -2543,51 +2878,41 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
               onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
               style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
             >
-              <MaybeEffect effect={statsEffect} sticker={statsSticker}>
+              <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
                 <TransformableWrapper elementId="hero-stat" className="flex flex-col items-center">
+                  <div style={textScaleStyle}>
                   {/* Hero stat - large and prominent */}
                   {heroStat && (
                     <div className="text-center">
                       {showLabels && (
-                        <span 
-                          className={`${isPreview ? 'text-[5px]' : 'text-xs'} uppercase tracking-wider block mb-0.5`}
-                          style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                        >
+                        <StatLabel className={`${isPreview ? 'text-[5px]' : 'text-xs'} uppercase tracking-wider block mb-0.5`}>
                           {heroStat.label}
-                        </span>
+                        </StatLabel>
                       )}
-                      <span 
-                        className={`${isPreview ? 'text-2xl' : 'text-5xl'} font-black block leading-none`}
-                        style={textStyle}
-                      >
+                      <StatValue className={`${isPreview ? 'text-2xl' : 'text-5xl'} font-black block leading-none`}>
                         {heroStat.value}
-                      </span>
+                      </StatValue>
                     </div>
                   )}
                   
-                  {/* Supporting stats - smaller, in rows - show ALL */}
+                  {/* Supporting stats - smaller, in rows of 3 max */}
                   {supportingStats.length > 0 && (
-                    <div className={`flex flex-wrap justify-center ${isPreview ? 'gap-2 mt-1 max-w-[90%]' : 'gap-4 mt-4 max-w-[85%]'}`}>
-                      {(isPreview ? supportingStats.slice(0, 4) : supportingStats).map((stat, i) => (
-                        <div key={i} className="text-center">
+                    <div className={`flex flex-row flex-wrap justify-center items-start ${isPreview ? 'gap-x-3 gap-y-1 mt-1' : 'gap-x-6 gap-y-2 mt-4'}`} style={{ maxWidth: '95%' }}>
+                      {(isPreview ? supportingStats.slice(0, 2) : supportingStats).map((stat, i) => (
+                        <div key={i} className="text-center" style={{ width: isPreview ? 'auto' : 'auto', minWidth: isPreview ? '20%' : '25%', maxWidth: '30%' }}>
                           {showLabels && (
-                            <span 
-                              className={`${isPreview ? 'text-[4px]' : 'text-[8px]'} uppercase tracking-wider block`}
-                              style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                            >
+                            <StatLabel className={`${isPreview ? 'text-[4px]' : 'text-[8px]'} uppercase tracking-wider block`}>
                               {stat.label}
-                            </span>
+                            </StatLabel>
                           )}
-                          <span 
-                            className={`${isPreview ? 'text-[7px]' : 'text-sm'} font-bold block leading-tight`}
-                            style={textStyle}
-                          >
+                          <StatValue className={`${isPreview ? 'text-[7px]' : 'text-sm'} font-bold block leading-tight`}>
                             {stat.value}
-                          </span>
+                          </StatValue>
                         </div>
                       ))}
                     </div>
                   )}
+                  </div>
                 </TransformableWrapper>
               </MaybeEffect>
             </div>
@@ -2596,6 +2921,170 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
             <DateElement />
           </div>
         );
+
+      case 'split-view': {
+        // Split layout: 2x2 stats grid on top, route at bottom
+        // Vertical design - stats have full width, route centered below
+        const splitStatsAll = prioritizedStats || [];
+        const gridStats = splitStatsAll.slice(0, 4);
+        
+        return (
+          <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden">
+            {/* Title at top */}
+            <TitleElement />
+            
+            {/* Stats on top - 2x2 grid */}
+            <div 
+              onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
+              style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
+              className={isPreview ? 'mb-2' : 'mb-4'}
+            >
+              <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
+                <TransformableWrapper elementId="stats">
+                  <div 
+                    className={`grid grid-cols-2 ${isPreview ? 'gap-x-6 gap-y-1' : 'gap-x-10 gap-y-3'}`} 
+                    style={textScaleStyle}
+                  >
+                    {gridStats.map((stat, i) => (
+                      <div key={i} className="text-center">
+                        {showLabels && (
+                          <StatLabel className={`${isPreview ? 'text-[6px]' : 'text-xs'} uppercase tracking-wider block`}>
+                            {stat.label}
+                          </StatLabel>
+                        )}
+                        <StatValue className={`${isPreview ? 'text-sm' : 'text-2xl'} font-bold block leading-tight`}>
+                          {stat.value}
+                        </StatValue>
+                      </div>
+                    ))}
+                  </div>
+                </TransformableWrapper>
+              </MaybeEffect>
+            </div>
+            
+            {/* Route at bottom */}
+            {showRoute && activity?.polyline && (
+              <div 
+                onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
+                style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
+              >
+                <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
+                  <TransformableWrapper elementId="route" className={`${isPreview ? 'w-20 h-14' : 'w-44 h-32'}`}>
+                    <div className="w-full h-full flex items-center justify-center">
+                      <RoutePolyline
+                        polylineEncoded={activity.polyline}
+                        x={0}
+                        y={0}
+                        scale={isPreview ? 0.35 : 0.55}
+                        maxHeight={isPreview ? 56 : 128}
+                        maxWidth={isPreview ? 80 : 176}
+                        opacity={1}
+                        strokeWidth={(isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.8) * routeThickness}
+                        strokeColor={routeColor}
+                        style={customRouteStyle || style.routeStyle}
+                        outline={globalRouteOutline}
+                        outlineColor={globalRouteOutlineColor}
+                        outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.5 : globalRouteOutlineWidth * 0.8) * routeThickness}
+                        outlineOnly={false}
+                        sketchy={false}
+                        pixelated={false}
+                        isEditing={false}
+                        isSelected={false}
+                      />
+                    </div>
+                  </TransformableWrapper>
+                </MaybeEffect>
+              </div>
+            )}
+            
+            {/* Date at bottom */}
+            <DateElement />
+          </div>
+        );
+      }
+
+      case 'pace-chart': {
+        const splits = activity.chartData?.splits;
+        
+        return (
+          <div className="absolute inset-0 flex flex-col items-center justify-between p-4">
+            {/* Title at top */}
+            <TitleElement />
+            
+            {/* Chart in center - tappable */}
+            <div 
+              className={`flex-1 flex items-center justify-center w-full ${onChartTap ? 'cursor-pointer' : ''}`}
+              onClick={(e) => {
+                if (onChartTap) {
+                  e.stopPropagation();
+                  onChartTap();
+                }
+              }}
+            >
+              <SplitsChart 
+                splits={splits} 
+                pack={pack} 
+                isPreview={isPreview} 
+                barColor={chartBarColor || routeColor}
+                textColor={chartTextColor || activeColor}
+                maxBars={isPreview ? 8 : 15}
+                orientation={chartOrientation}
+                barEffect={chartBarEffect}
+                fontFamily={style.font}
+                routeColor={style.routeColor}
+                statsColor={style.color}
+              />
+            </div>
+            
+            {/* Date at bottom */}
+            <DateElement />
+          </div>
+        );
+      }
+
+      case 'elevation-chart': {
+        const splits = activity.chartData?.splits;
+        
+        return (
+          <div className="absolute inset-0 flex flex-col items-center justify-between p-4">
+            {/* Title at top */}
+            <TitleElement />
+            
+            {/* Elevation Chart in center - tappable */}
+            <div 
+              className={`flex-1 flex items-center justify-center w-full ${onChartTap ? 'cursor-pointer' : ''}`}
+              onClick={(e) => {
+                if (onChartTap) {
+                  e.stopPropagation();
+                  onChartTap();
+                }
+              }}
+            >
+              <ElevationChart 
+                splits={splits} 
+                pack={pack} 
+                isPreview={isPreview} 
+                fillColor={chartBarColor || routeColor}
+                textColor={chartTextColor || activeColor}
+                fillOpacity={0.6}
+                showLabels={!isPreview}
+                showTitle={false}
+                elevationGain={activity.chartData?.elevationGain}
+                elevLow={activity.chartData?.elevLow}
+                elevHigh={activity.chartData?.elevHigh}
+                activityType={activity.type}
+                averageSpeed={activity.chartData?.averageSpeed}
+                fontFamily={style.font}
+                defaultRouteColor={style.routeColor}
+                defaultStatsColor={style.color}
+              />
+            </div>
+            
+            {/* Date at bottom */}
+            <DateElement />
+          </div>
+        );
+      }
 
       case 'circular':
         // Text arranged in a circle using SVG textPath
@@ -2621,12 +3110,9 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 style={{ cursor: isEditing ? 'pointer' : 'default' }}
               >
                 <TransformableWrapper elementId="title">
-                  <div 
-                    className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}
-                    style={textStyle}
-                  >
+                  <StatValue className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}>
                     {activityTitle}
-                  </div>
+                  </StatValue>
                 </TransformableWrapper>
               </div>
             )}
@@ -2638,7 +3124,7 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
                 style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
               >
-                <MaybeEffect effect={routeEffect} sticker={routeSticker}>
+                <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
                   <RoutePolyline
                     polylineEncoded={activity.polyline}
                     x={0}
@@ -2647,18 +3133,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                     maxHeight={isPreview ? 150 : 374}
                     maxWidth={isPreview ? 150 : 374}
                     opacity={1}
-                    strokeWidth={isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.7}
+                    strokeWidth={(isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.7) * routeThickness}
                     strokeColor={routeColor}
                     style={customRouteStyle || style.routeStyle}
-                    outline={style.routeOutline}
-                    outlineColor={style.routeOutlineColor}
-                    outlineWidth={isPreview ? style.routeOutlineWidth * 0.5 : style.routeOutlineWidth * 0.7}
-                    outlineOnly={style.routeOutlineOnly}
-                    sketchy={style.routeSketchy}
-                    shadowOffset={style.routeShadowOffset}
-                    shadowColor={style.routeShadowColor}
-                    shadowOpacity={style.routeShadowOpacity}
-                    pixelated={style.routePixelated}
+                    outline={globalRouteOutline}
+                    outlineColor={globalRouteOutlineColor}
+                    outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.5 : globalRouteOutlineWidth * 0.7) * routeThickness}
+                    outlineOnly={false}
+                    sketchy={false}
+                    pixelated={false}
                     isEditing={false}
                     isSelected={false}
                   />
@@ -2671,13 +3154,13 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
               onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
               style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
             >
-              <MaybeEffect effect={statsEffect} sticker={statsSticker}>
+              <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
                 <TransformableWrapper elementId="circular-stats">
                   <svg 
                     width={circleSize} 
                     height={circleSize} 
                     viewBox={`0 0 ${circleSize} ${circleSize}`}
-                    style={{ overflow: 'visible' }}
+                    style={{ overflow: 'visible', ...textScaleStyle }}
                   >
                     <defs>
                       <path
@@ -2768,7 +3251,7 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                 onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
                 style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
               >
-                <MaybeEffect effect={routeEffect} sticker={routeSticker}>
+                <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
                   <RoutePolyline
                     polylineEncoded={activity.polyline}
                     x={0}
@@ -2777,18 +3260,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                     maxHeight={isPreview ? 164 : 420}
                     maxWidth={isPreview ? 240 : 494}
                     opacity={1}
-                    strokeWidth={isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.7}
+                    strokeWidth={(isPreview ? style.routeStrokeWidth * 0.5 : style.routeStrokeWidth * 0.7) * routeThickness}
                     strokeColor={routeColor}
                     style={customRouteStyle || style.routeStyle}
-                    outline={style.routeOutline}
-                    outlineColor={style.routeOutlineColor}
-                    outlineWidth={isPreview ? style.routeOutlineWidth * 0.5 : style.routeOutlineWidth * 0.7}
-                    outlineOnly={style.routeOutlineOnly}
-                    sketchy={style.routeSketchy}
-                    shadowOffset={style.routeShadowOffset}
-                    shadowColor={style.routeShadowColor}
-                    shadowOpacity={style.routeShadowOpacity}
-                    pixelated={style.routePixelated}
+                    outline={globalRouteOutline}
+                    outlineColor={globalRouteOutlineColor}
+                    outlineWidth={(isPreview ? globalRouteOutlineWidth * 0.5 : globalRouteOutlineWidth * 0.7) * routeThickness}
+                    outlineOnly={false}
+                    sketchy={false}
+                    pixelated={false}
                     isEditing={false}
                     isSelected={false}
                   />
@@ -2801,13 +3281,13 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
               onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
               style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
             >
-              <MaybeEffect effect={statsEffect} sticker={statsSticker}>
+              <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
                 <TransformableWrapper elementId="wavy-stats">
                   <svg 
                     width={wavyWidth} 
                     height={wavyHeight} 
                     viewBox={`0 0 ${wavyWidth} ${wavyHeight}`}
-                    style={{ overflow: 'visible' }}
+                    style={{ overflow: 'visible', ...textScaleStyle }}
                   >
                     <defs>
                       <path
@@ -2877,37 +3357,94 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
         }
         
         // Full create mode - show added elements
-        // Each element is absolutely positioned so they don't shift when new elements are added
+        // Each element uses TransformableWrapper for drag/resize
+        // Initial positions are set via CSS, then TransformableWrapper handles offsets
+        const getElementPosition = (elementType: string) => {
+          const positions: Record<string, { top: string; left: string }> = {
+            'title': { top: '8%', left: '50%' },
+            'date': { top: '18%', left: '50%' },
+            'route': { top: '40%', left: '50%' },
+          };
+          
+          // For stats, spread them in a grid pattern at the bottom
+          if (!positions[elementType]) {
+            const statElements = createdElements.filter(e => !['title', 'date', 'route'].includes(e));
+            const statIndex = statElements.indexOf(elementType);
+            const totalStats = statElements.length;
+            
+            // Grid layout: 2 columns for 2+ stats, center for 1 stat
+            if (totalStats === 1) {
+              return { top: '75%', left: '50%' };
+            } else {
+              // Spread stats across bottom area
+              const row = Math.floor(statIndex / 2);
+              const col = statIndex % 2;
+              const leftPos = col === 0 ? '30%' : '70%';
+              const topPos = 70 + (row * 15);
+              return { top: `${Math.min(topPos, 85)}%`, left: leftPos };
+            }
+          }
+          
+          return positions[elementType];
+        };
+        
         return (
           <div className="absolute inset-0">
-            {/* Title element - starts at top center */}
-            {createdElements.includes('title') && activityTitle && (
-              <div 
-                className="absolute"
-                style={{ top: '10%', left: '50%', transform: 'translateX(-50%)', cursor: isEditing ? 'pointer' : 'default' }}
-                onClick={(e) => { if (onTitleTap && isEditing) { e.stopPropagation(); onTitleTap(); } }}
-              >
-                <TransformableWrapper elementId="create-title">
+            {/* Title element */}
+            {createdElements.includes('title') && activityTitle && (() => {
+              const pos = getElementPosition('title');
+              return (
+                <TransformableWrapper 
+                  elementId="create-title" 
+                  className="absolute" 
+                  style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
+                  onTap={isEditing && onTitleTap ? onTitleTap : undefined}
+                >
                   <div 
                     className="text-lg font-medium whitespace-nowrap"
-                    style={textStyle}
+                    style={{ ...textStyle, color: customTitleColor || textStyle.color, cursor: isEditing ? 'move' : 'default' }}
                   >
                     {activityTitle}
                   </div>
                 </TransformableWrapper>
-              </div>
-            )}
+              );
+            })()}
             
-            {/* Route element - starts at center */}
-            {createdElements.includes('route') && activity.polyline && (
-              <div 
-                className="absolute"
-                style={{ top: '35%', left: '50%', transform: 'translateX(-50%)', cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
-                onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
-              >
-                <MaybeEffect effect={routeEffect} sticker={routeSticker}>
-                  <TransformableWrapper elementId="create-route">
-                    <div className="w-40 h-32 flex items-center justify-center overflow-hidden">
+            {/* Date element */}
+            {createdElements.includes('date') && activity.date && (() => {
+              const pos = getElementPosition('date');
+              return (
+                <TransformableWrapper 
+                  elementId="create-date" 
+                  className="absolute" 
+                  style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)' }}
+                  onTap={isEditing && onDateTap ? onDateTap : undefined}
+                >
+                  <div 
+                    className="text-sm whitespace-nowrap"
+                    style={{ ...textStyle, color: customDateColor || textStyle.color, cursor: isEditing ? 'move' : 'default' }}
+                  >
+                    {activity.date}
+                  </div>
+                </TransformableWrapper>
+              );
+            })()}
+            
+            {/* Route element */}
+            {createdElements.includes('route') && activity.polyline && (() => {
+              const pos = getElementPosition('route');
+              return (
+                <TransformableWrapper 
+                  elementId="create-route" 
+                  className="absolute" 
+                  style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)', ...getEffectFilter(routeEffect) }}
+                  onTap={isEditing && onRouteTap ? onRouteTap : undefined}
+                >
+                  <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
+                    <div 
+                      className="w-40 h-32 flex items-center justify-center overflow-hidden"
+                      style={{ cursor: isEditing ? 'move' : 'default' }}
+                    >
                       <RoutePolyline
                         polylineEncoded={activity.polyline}
                         x={0}
@@ -2916,61 +3453,53 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
                         maxHeight={300}
                         maxWidth={374}
                         opacity={1}
-                        strokeWidth={style.routeStrokeWidth}
+                        strokeWidth={style.routeStrokeWidth * routeThickness}
                         strokeColor={routeColor}
                         style={customRouteStyle || style.routeStyle}
-                        outline={style.routeOutline}
-                        outlineColor={style.routeOutlineColor}
-                        outlineWidth={style.routeOutlineWidth}
-                        outlineOnly={style.routeOutlineOnly}
-                        sketchy={style.routeSketchy}
-                        shadowOffset={style.routeShadowOffset}
-                        shadowColor={style.routeShadowColor}
-                        shadowOpacity={style.routeShadowOpacity}
-                        pixelated={style.routePixelated}
+                        outline={globalRouteOutline}
+                        outlineColor={globalRouteOutlineColor}
+                        outlineWidth={globalRouteOutlineWidth * routeThickness}
+                        outlineOnly={false}
+                        sketchy={false}
+                        pixelated={false}
                         isEditing={false}
                         isSelected={false}
                       />
                     </div>
-                  </TransformableWrapper>
-                </MaybeEffect>
-              </div>
-            )}
-            
-            {/* Individual stat elements - each starts at a staggered position */}
-            {allStats.map((stat, index) => {
-              if (!createdElements.includes(stat.key)) return null;
-              // Calculate initial position based on order added (stagger down the center)
-              const addedIndex = createdElements.indexOf(stat.key);
-              const startTop = 60 + (addedIndex * 12); // Start at 60%, stagger by 12%
-              return (
-                <div 
-                  key={stat.key}
-                  className="absolute"
-                  style={{ top: `${Math.min(startTop, 85)}%`, left: '50%', transform: 'translateX(-50%)', cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
-                  onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(stat.key); } }}
-                >
-                  <MaybeEffect effect={statsEffect} sticker={statsSticker}>
-                    <TransformableWrapper elementId={`create-${stat.key}`}>
-                      <div className="text-center whitespace-nowrap">
-                        {showLabels && (
-                          <span 
-                            className="text-[10px] uppercase tracking-wider block"
-                            style={{ fontFamily: style.font, color: activeColor, ...labelOutlineStyle }}
-                          >
-                            {stat.label}
-                          </span>
-                        )}
-                        <span 
-                          className="text-xl font-bold block leading-none"
-                          style={textStyle}
-                        >
-                          {stat.value}
-                        </span>
-                      </div>
-                    </TransformableWrapper>
                   </MaybeEffect>
-                </div>
+                </TransformableWrapper>
+              );
+            })()}
+            
+            {/* Individual stat elements - spread in grid pattern */}
+            {/* Exclude 'date' since it has its own dedicated element above */}
+            {allStats.filter(s => s.key !== 'date').map((stat) => {
+              if (!createdElements.includes(stat.key)) return null;
+              const pos = getElementPosition(stat.key);
+              return (
+                <TransformableWrapper 
+                  key={stat.key} 
+                  elementId={`create-${stat.key}`} 
+                  className="absolute" 
+                  style={{ top: pos.top, left: pos.left, transform: 'translateX(-50%)', ...getEffectFilter(statsEffect) }}
+                  onTap={isEditing && onStatsTap ? () => onStatsTap(stat.key) : undefined}
+                >
+                  <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
+                    <div 
+                      className="text-center whitespace-nowrap"
+                      style={{ cursor: isEditing ? 'move' : 'default', ...textScaleStyle }}
+                    >
+                      {showLabels && (
+                        <StatLabel className="text-[10px] uppercase tracking-wider block">
+                          {stat.label}
+                        </StatLabel>
+                      )}
+                      <StatValue className="text-xl font-bold block leading-none">
+                        {stat.value}
+                      </StatValue>
+                    </div>
+                  </MaybeEffect>
+                </TransformableWrapper>
               );
             })}
             

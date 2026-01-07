@@ -3,9 +3,28 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://app.appstatik.com',
+  'https://appstatik.com',
+  'capacitor://localhost',  // iOS WebView
+  'http://localhost',       // Android WebView
+  'http://localhost:5173',  // Vite dev server
+];
+
+function getCorsOrigin(requestOrigin: string | undefined): string | null {
+  if (!requestOrigin) return null;
+  return ALLOWED_ORIGINS.includes(requestOrigin) ? requestOrigin : null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin as string | undefined;
+  const allowedOrigin = getCorsOrigin(origin);
+  
+  // Set CORS headers only for allowed origins
+  if (allowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 

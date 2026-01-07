@@ -4,7 +4,7 @@ import { OverlayPreview } from './OverlayPreview';
 import { OverlayThumbnail } from './OverlayThumbnail';
 
 // Define overlay variants for each pack
-export type OverlayVariant = 'stats-only' | 'route-only' | 'route-stats' | 'full-data' | 'title-only' | 'scattered' | 'hero-stat' | 'circular' | 'wavy' | 'create';
+export type OverlayVariant = 'stats-only' | 'route-only' | 'route-stats' | 'full-data' | 'title-only' | 'scattered' | 'hero-stat' | 'circular' | 'wavy' | 'split-view' | 'pace-chart' | 'elevation-chart' | 'create';
 
 export interface OverlayDefinition {
   id: string;
@@ -20,6 +20,9 @@ const OVERLAY_VARIANTS: OverlayDefinition[] = [
   { id: 'stats-only', variant: 'stats-only', label: 'Stats', description: 'Stats with route below' },
   { id: 'hero-stat', variant: 'hero-stat', label: 'Hero', description: 'Large main stat with smaller stats' },
   { id: 'route-stats', variant: 'route-stats', label: 'Route + Stats', description: 'Route with stats below' },
+  { id: 'split-view', variant: 'split-view', label: 'Split', description: 'Stats left, route right' },
+  { id: 'pace-chart', variant: 'pace-chart', label: 'Pace Chart', description: 'Pace per kilometer bars' },
+  { id: 'elevation-chart', variant: 'elevation-chart', label: 'Elevation', description: 'Elevation profile chart' },
   // { id: 'circular', variant: 'circular', label: 'Circle', description: 'Stats arranged in a circle' },
   // { id: 'wavy', variant: 'wavy', label: 'Wave', description: 'Stats in a wavy line' },
   { id: 'create', variant: 'create', label: 'Create', description: 'Build your own layout' },
@@ -98,13 +101,13 @@ const PackCarousel: React.FC<PackCarouselProps> = memo(function PackCarousel({
         ref={scrollRef}
         onScroll={handleScroll}
         className="flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar px-4"
-        style={{ scrollBehavior: 'smooth' }}
+        style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
       >
         {OVERLAY_VARIANTS.map((overlay) => (
           <div
             key={overlay.id}
-            className="flex-shrink-0 snap-start aspect-[9/16]"
-            style={{ width: '42%', minWidth: '140px' }}
+            className="flex-shrink-0 snap-start aspect-[3/4]"
+            style={{ width: '52%', minWidth: '160px' }}
           >
             <OverlayThumbnail
               activity={activity}
@@ -124,25 +127,31 @@ const PackCarousel: React.FC<PackCarouselProps> = memo(function PackCarousel({
 
 // Active packs - only OFL licensed fonts
 const ACTIVE_PACKS: OverlayPack[] = [
+  // Featured packs at top
+  OverlayPack.SLACKEY,
+  OverlayPack.DOODLE,
+  OverlayPack.COMFORTAA,
+  // Playful Google Fonts
+  OverlayPack.BANGERS,
+  OverlayPack.FRECKLE_FACE,
+  OverlayPack.ATKINSON,
+  OverlayPack.CHEWY,
+  OverlayPack.LUCKIEST_GUY,
   // Clean & Professional
   OverlayPack.RETRO,
+  OverlayPack.FINLANDICA,
   // Stylish & Fun
   OverlayPack.GROOVY,
-  OverlayPack.DOODLE,
   OverlayPack.CHICLE,
-  OverlayPack.ABRIL_FATFACE,
-  // Bold & Chunky
-  OverlayPack.SLACKEY,
-  OverlayPack.LOBSTER,
+  OverlayPack.ALLERTA,
   // Digital & Tech
   OverlayPack.CYBER,
   OverlayPack.GLITCH,
   // Display Fonts
   OverlayPack.DOKDO,
-  OverlayPack.GRIDLOCK,
+  OverlayPack.KDAM,
   // New OFL fonts
   OverlayPack.CAFE24_MOYAMOYA,
-  OverlayPack.KUBO,
   OverlayPack.SPEED_FREAK,
   OverlayPack.BLOCKY,
   OverlayPack.GRITH,
@@ -159,10 +168,6 @@ const ACTIVE_PACKS: OverlayPack[] = [
   OverlayPack.RUNTTI,
   OverlayPack.TACHYO,
   OverlayPack.XANMONO,
-  OverlayPack.CAL_SANS,
-  // At the end
-  OverlayPack.RUBIK_MAZE,
-  OverlayPack.BOCALUPO,
 ];
 
 // Pack styling for tabs (used in editor)
@@ -618,6 +623,73 @@ export const PACK_TAB_STYLES: Record<OverlayPack, {
     bgColor: '#1a1a1a',
     textShadow: 'none',
   },
+  [OverlayPack.KIRANG]: {
+    font: '"Kirang Haerang", cursive',
+    color: '#FF6B9D',
+    bgColor: '#1a1a1a',
+    textShadow: '1px 1px 0 #000',
+  },
+  [OverlayPack.BANGERS]: {
+    font: '"Bangers", cursive',
+    color: '#FFE135',
+    bgColor: '#1a1a1a',
+    textShadow: '2px 2px 0 #000',
+  },
+  [OverlayPack.JOLLY_LODGER]: {
+    font: '"Jolly Lodger", cursive',
+    color: '#7FDBFF',
+    bgColor: '#1a1a1a',
+    textShadow: '1px 1px 0 #000',
+  },
+  [OverlayPack.FRECKLE_FACE]: {
+    font: '"Freckle Face", cursive',
+    color: '#2ECC40',
+    bgColor: '#1a1a1a',
+    textShadow: '1px 1px 0 #000',
+  },
+  [OverlayPack.CHEWY]: {
+    font: '"Chewy", cursive',
+    color: '#FF9FF3',
+    bgColor: '#1a1a1a',
+    textShadow: '1px 1px 0 #000',
+  },
+  [OverlayPack.LUCKIEST_GUY]: {
+    font: '"Luckiest Guy", cursive',
+    color: '#00D2D3',
+    bgColor: '#1a1a1a',
+    textShadow: '2px 2px 0 #000',
+  },
+  // Clean Modern packs (no outlines, clean look)
+  [OverlayPack.COMFORTAA]: {
+    font: '"Comfortaa", sans-serif',
+    color: '#FFFFFF',
+    bgColor: '#1a1a1a',
+    textShadow: 'none',
+  },
+  [OverlayPack.ATKINSON]: {
+    font: '"Atkinson Hyperlegible Mono", monospace',
+    color: '#FFFFFF',
+    bgColor: '#1a1a1a',
+    textShadow: 'none',
+  },
+  [OverlayPack.FINLANDICA]: {
+    font: '"Finlandica", sans-serif',
+    color: '#FFFFFF',
+    bgColor: '#1a1a1a',
+    textShadow: 'none',
+  },
+  [OverlayPack.ALLERTA]: {
+    font: '"Allerta", sans-serif',
+    color: '#FFFFFF',
+    bgColor: '#1a1a1a',
+    textShadow: 'none',
+  },
+  [OverlayPack.KDAM]: {
+    font: '"Kdam Thmor Pro", sans-serif',
+    color: '#FFFFFF',
+    bgColor: '#1a1a1a',
+    textShadow: 'none',
+  },
 };
 
 export const OverlayGallery: React.FC<OverlayGalleryProps> = ({ activity, onBack }) => {
@@ -774,7 +846,7 @@ export const OverlayGallery: React.FC<OverlayGalleryProps> = ({ activity, onBack
         </div>
 
         {/* Vertical scrolling list of pack carousels */}
-        <div className="flex-1 overflow-y-auto pb-6">
+        <div className="flex-1 overflow-y-auto pb-6 scroll-smooth" style={{ WebkitOverflowScrolling: 'touch' }}>
           {ACTIVE_PACKS.map((pack) => (
             <PackCarousel
               key={pack}

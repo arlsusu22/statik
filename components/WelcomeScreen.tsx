@@ -80,7 +80,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onSkip, isLoading 
       />
 
       {/* App logo at top */}
-      <div className="relative z-20 pt-12 text-center flex flex-col items-center">
+      <div className="relative z-20 pt-16 text-center flex flex-col items-center">
         {/* Circular logo image */}
         <div className="w-40 h-40 rounded-full overflow-hidden shadow-lg">
           <img 

@@ -61,7 +61,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
       <div className="sticky top-0 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800 z-10">
-        <div className="flex items-center px-4 py-4">
+        <div className="flex items-center px-4 pt-14 pb-4">
           <button
             onClick={onBack}
             className="text-zinc-400 hover:text-white transition-colors mr-4"
@@ -72,7 +72,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </button>
           <h1 
             className="text-xl"
-            style={{ fontFamily: '"Londrina Shadow", cursive' }}
+            style={{ fontFamily: '"Londrina Solid", cursive' }}
           >
             Settings
           </h1>
@@ -197,12 +197,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 
         {/* App Info */}
         <div className="py-6 text-center text-zinc-500 text-sm">
-          <p 
-            className="text-lg text-white mb-1"
-            style={{ fontFamily: '"Londrina Shadow", cursive' }}
-          >
-            statik.
-          </p>
+          <img 
+            src="/assets/statiktop.png" 
+            alt="Statik" 
+            className="h-10 mx-auto mb-2"
+          />
           <p className="mb-3">Version 1.0.0</p>
           {/* Strava attribution - required per brand guidelines */}
           <PoweredByStrava variant="light" />
@@ -220,7 +219,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       {showHelpFAQ && (
         <div className="fixed inset-0 bg-zinc-950 z-50 overflow-y-auto">
           <div className="sticky top-0 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800 z-10">
-            <div className="flex items-center px-4 py-4">
+            <div className="flex items-center px-4 pt-14 pb-4">
               <button
                 onClick={() => setShowHelpFAQ(false)}
                 className="text-zinc-400 hover:text-white transition-colors mr-4"
@@ -229,7 +228,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 className="text-xl" style={{ fontFamily: '"Londrina Shadow", cursive' }}>
+              <h1 className="text-xl" style={{ fontFamily: '"Londrina Solid", cursive' }}>
                 Help & FAQ
               </h1>
             </div>
@@ -274,7 +273,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 </div>
                 <div className="bg-zinc-900 rounded-xl p-4">
                   <h3 className="font-medium text-white mb-2">How do I customize the route?</h3>
-                  <p className="text-sm">Tap on the route in the preview to open the route editor. You can change the route style (solid, 3D, glow, gradient, dotted, dashed), color, and visibility.</p>
+                  <p className="text-sm">Tap on the route in the preview to open the route editor. You can change the route style (solid, 3D, paint, gradient, dotted, dashed), color, and visibility.</p>
                 </div>
               </div>
             </section>
@@ -370,7 +369,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       {showTerms && (
         <div className="fixed inset-0 bg-zinc-950 z-50 overflow-y-auto">
           <div className="sticky top-0 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800 z-10">
-            <div className="flex items-center px-4 py-4">
+            <div className="flex items-center px-4 pt-14 pb-4">
               <button
                 onClick={() => setShowTerms(false)}
                 className="text-zinc-400 hover:text-white transition-colors mr-4"
@@ -379,7 +378,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-              <h1 className="text-xl" style={{ fontFamily: '"Londrina Shadow", cursive' }}>
+              <h1 className="text-xl" style={{ fontFamily: '"Londrina Solid", cursive' }}>
                 Terms of Service
               </h1>
             </div>

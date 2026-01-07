@@ -1,21 +1,26 @@
 import React from 'react';
+import { StravaAthlete } from '../types';
 
 interface ProfilePageProps {
   onBack: () => void;
   onNavigateToSettings: () => void;
+  onDisconnectStrava?: () => void;
   userEmail?: string;
   isStravaConnected?: boolean;
   subscriptionStatus?: 'trial' | 'active' | 'expired' | 'none';
   trialDaysRemaining?: number;
+  athlete?: StravaAthlete | null;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   onBack,
   onNavigateToSettings,
+  onDisconnectStrava,
   userEmail = 'user@example.com',
   isStravaConnected = false,
   subscriptionStatus = 'trial',
   trialDaysRemaining = 7,
+  athlete,
 }) => {
   const getSubscriptionBadge = () => {
     switch (subscriptionStatus) {
@@ -46,7 +51,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
       <div className="sticky top-0 bg-zinc-950/90 backdrop-blur-sm border-b border-zinc-800 z-10">
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between px-4 pt-14 pb-4">
           <button
             onClick={onBack}
             className="text-zinc-400 hover:text-white transition-colors"
@@ -57,7 +62,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </button>
           <h1 
             className="text-xl"
-            style={{ fontFamily: '"Londrina Shadow", cursive' }}
+            style={{ fontFamily: '"Londrina Solid", cursive' }}
           >
             Profile
           </h1>
@@ -75,12 +80,27 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
 
       {/* Profile Content */}
       <div className="px-4 py-6 space-y-6">
-        {/* User Avatar & Email */}
+        {/* User Avatar & Name */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-3xl font-bold mb-3">
-            {userEmail.charAt(0).toUpperCase()}
-          </div>
-          <p className="text-lg font-medium">{userEmail}</p>
+          {athlete?.profile ? (
+            <img 
+              src={athlete.profile} 
+              alt={`${athlete.firstname || 'User'}'s avatar`}
+              className="w-20 h-20 rounded-full object-cover mb-3 border-2 border-zinc-700"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-3xl font-bold mb-3">
+              {(athlete?.firstname?.charAt(0) || userEmail.charAt(0)).toUpperCase()}
+            </div>
+          )}
+          <p className="text-lg font-medium">
+            {athlete?.firstname && athlete?.lastname 
+              ? `${athlete.firstname} ${athlete.lastname}` 
+              : userEmail}
+          </p>
+          {athlete?.city && athlete?.state && (
+            <p className="text-sm text-zinc-400 mt-1">{athlete.city}, {athlete.state}</p>
+          )}
           <div className="mt-2">{getSubscriptionBadge()}</div>
         </div>
 
@@ -101,7 +121,10 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
               </div>
             </div>
             {isStravaConnected ? (
-              <button className="px-4 py-2 rounded-full text-sm font-medium bg-zinc-700 text-zinc-300">
+              <button 
+                onClick={onDisconnectStrava}
+                className="px-4 py-2 rounded-full text-sm font-medium bg-zinc-700 text-zinc-300 hover:bg-zinc-600 transition-colors"
+              >
                 Disconnect
               </button>
             ) : (
@@ -123,7 +146,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 You're on a 7-day free trial. Upgrade to Pro to keep creating beautiful overlays.
               </p>
               <button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-3 rounded-full font-semibold">
-                Upgrade to Pro - €14.99/year
+                Upgrade to Pro - $19.99/year
               </button>
             </div>
           )}
@@ -139,7 +162,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 Your subscription has expired. Renew to continue creating overlays.
               </p>
               <button className="w-full bg-gradient-to-r from-orange-500 to-pink-500 text-white py-3 rounded-full font-semibold">
-                Renew - €14.99/year
+                Renew - $19.99/year
               </button>
             </div>
           )}

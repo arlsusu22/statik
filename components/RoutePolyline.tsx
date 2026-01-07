@@ -474,42 +474,9 @@ export const RoutePolyline: React.FC<RoutePolylineProps> = memo(function RoutePo
           </>
         )}
 
-        {style === 'glow' && (
+        {style === 'paint' && (
           <>
-            {/* Outline layer (if enabled) */}
-            {outline && (
-              <polyline
-                points={svgContent}
-                fill="none"
-                stroke={outlineColor}
-                strokeWidth={strokeWidth + 6 + (outlineWidth * 2)}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )}
-            {/* Outer glow */}
-            <polyline
-              points={svgContent}
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth={strokeWidth + 6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={opacity * 0.3}
-              style={{ filter: 'blur(8px)' }}
-            />
-            {/* Inner glow */}
-            <polyline
-              points={svgContent}
-              fill="none"
-              stroke={strokeColor}
-              strokeWidth={strokeWidth + 2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              opacity={opacity * 0.6}
-              style={{ filter: 'blur(4px)' }}
-            />
-            {/* Core line */}
+            {/* Paint style: Clean thin line like Strava's default map - no shadows, no outlines, just the route */}
             <polyline
               points={svgContent}
               fill="none"

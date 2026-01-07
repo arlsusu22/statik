@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { StickerOutline, StickerStyle } from '../types';
+import { StickerOutline } from '../types';
 
 interface StickerWrapperProps {
   sticker?: StickerOutline;
@@ -8,45 +8,33 @@ interface StickerWrapperProps {
   style?: React.CSSProperties;
 }
 
-// Unique ID generator for SVG filters
-let filterId = 0;
-const getFilterId = () => `sticker-filter-${++filterId}`;
-
-// SVG filter for sticker outline effect
-const StickerSvgDefs: React.FC<{ sticker: StickerOutline; filterId: string }> = ({ sticker, filterId }) => {
-  const thickness = sticker.thickness;
+// Generate sticker outline using multiple layers of drop-shadows for a solid outline
+const generateStickerShadow = (color: string, thickness: number): string => {
+  const shadows: string[] = [];
   
-  const filterContent = useMemo(() => {
-    // Smooth rounded outline using morphology dilate
-    return (
-      <>
-        <feMorphology in="SourceAlpha" operator="dilate" radius={thickness} result="dilated" />
-        <feFlood floodColor={sticker.color} result="color" />
-        <feComposite in="color" in2="dilated" operator="in" result="outline" />
-        <feMerge>
-          <feMergeNode in="outline" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </>
-    );
-  }, [sticker.color, thickness]);
-  
-  return (
-    <svg width="0" height="0" style={{ position: 'absolute' }}>
-      <defs>
-        <filter 
-          id={filterId} 
-          x="-50%" 
-          y="-50%" 
-          width="200%" 
-          height="200%"
-          colorInterpolationFilters="sRGB"
-        >
-          {filterContent}
-        </filter>
-      </defs>
-    </svg>
+  // Create multiple layers for a solid sticker effect
+  // Layer 1: 8 cardinal + diagonal directions at full thickness
+  const t = thickness;
+  shadows.push(
+    `drop-shadow(${t}px 0 0 ${color})`,
+    `drop-shadow(-${t}px 0 0 ${color})`,
+    `drop-shadow(0 ${t}px 0 ${color})`,
+    `drop-shadow(0 -${t}px 0 ${color})`,
+    `drop-shadow(${t}px ${t}px 0 ${color})`,
+    `drop-shadow(-${t}px ${t}px 0 ${color})`,
+    `drop-shadow(${t}px -${t}px 0 ${color})`,
+    `drop-shadow(-${t}px -${t}px 0 ${color})`
   );
+  
+  // Layer 2: additional passes at same thickness for more solid fill
+  shadows.push(
+    `drop-shadow(${t}px 0 0 ${color})`,
+    `drop-shadow(-${t}px 0 0 ${color})`,
+    `drop-shadow(0 ${t}px 0 ${color})`,
+    `drop-shadow(0 -${t}px 0 ${color})`
+  );
+  
+  return shadows.join(' ');
 };
 
 // Main sticker wrapper component
@@ -56,29 +44,34 @@ export const StickerWrapper: React.FC<StickerWrapperProps> = ({
   className,
   style 
 }) => {
-  const uniqueFilterId = useMemo(() => getFilterId(), []);
-  
-  // If no sticker or not enabled, just render children
+  // If no sticker or not enabled, just render children directly without wrapper
   if (!sticker || !sticker.enabled) {
-    return (
-      <div className={className} style={style}>
-        {children}
-      </div>
-    );
+    return <>{children}</>;
   }
   
+  const stickerFilter = useMemo(() => {
+    return generateStickerShadow(sticker.color, sticker.thickness);
+  }, [sticker.color, sticker.thickness]);
+  
   return (
-    <>
-      <StickerSvgDefs sticker={sticker} filterId={uniqueFilterId} />
-      <div 
-        className={className} 
-        style={{ 
-          ...style, 
-          filter: `url(#${uniqueFilterId})`,
-        }}
-      >
-        {children}
-      </div>
-    </>
+    <div 
+      className={className} 
+      style={{ 
+        ...style, 
+        // Use both prefixed and unprefixed for iOS compatibility
+        WebkitFilter: stickerFilter,
+        filter: stickerFilter,
+        // Force GPU acceleration on iOS
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)',
+        // Ensure proper stacking context
+        isolation: 'isolate',
+        willChange: 'filter',
+      }}
+    >
+      {children}
+    </div>
   );
 };
+
+export default StickerWrapper;

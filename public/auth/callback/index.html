@@ -70,18 +70,27 @@
 
   <script>
     (function() {
-      // Get the authorization code from URL
+      // Get the authorization code and state from URL
       const params = window.location.search;
       const urlParams = new URLSearchParams(params);
       const code = urlParams.get('code');
+      const state = urlParams.get('state');
       const error = urlParams.get('error');
       
-      // Build the deep link URL
+      // Build the deep link URL with all parameters
       let deepLink = 'statik://callback';
+      const deepLinkParams = [];
       if (code) {
-        deepLink += '?code=' + encodeURIComponent(code);
-      } else if (error) {
-        deepLink += '?error=' + encodeURIComponent(error);
+        deepLinkParams.push('code=' + encodeURIComponent(code));
+      }
+      if (state) {
+        deepLinkParams.push('state=' + encodeURIComponent(state));
+      }
+      if (error) {
+        deepLinkParams.push('error=' + encodeURIComponent(error));
+      }
+      if (deepLinkParams.length > 0) {
+        deepLink += '?' + deepLinkParams.join('&');
       }
       
       // Set the manual link

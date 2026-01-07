@@ -1,17 +1,19 @@
 import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { toPng } from 'html-to-image';
-import { ActivityStats, OverlayPack, PACK_CONFIG, RouteStyle, ElementEffect, ElementEffectType, StickerOutline, StickerStyle } from '../types';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { ActivityStats, OverlayPack, PACK_CONFIG, RouteStyle, ElementEffect, StickerOutline } from '../types';
 import type { OverlayVariant } from './OverlayGallery';
 import { PACK_TAB_STYLES } from './OverlayGallery';
 import { OverlayRenderer, PACK_STYLES } from './OverlayRenderer';
 import { getStatsForActivityType, StatItem } from '../utils/activityStats';
-import { EFFECT_OPTIONS } from './EffectWrapper';
 
 // Route style options with labels and descriptions
 const ROUTE_STYLE_OPTIONS: { id: RouteStyle; label: string; icon: string }[] = [
   { id: 'smooth', label: 'Solid', icon: '━' },
   { id: '3d', label: '3D', icon: '▣' },
-  { id: 'glow', label: 'Glow', icon: '◉' },
+  { id: 'paint', label: 'Paint', icon: '〰' },
   { id: 'gradient', label: 'Gradient', icon: '▓' },
   { id: 'dotted', label: 'Dotted', icon: '•••' },
   { id: 'dashed', label: 'Dashed', icon: '---' },
@@ -28,22 +30,28 @@ interface OverlayPreviewProps {
 
 // Only show the active packs - OFL licensed fonts only
 const ACTIVE_PACKS: OverlayPack[] = [
-  OverlayPack.RETRO,
-  OverlayPack.GROOVY,
-  OverlayPack.DOODLE,
-  OverlayPack.CHICLE,
-  OverlayPack.ABRIL_FATFACE,
+  // Featured packs at top
   OverlayPack.SLACKEY,
-  OverlayPack.LOBSTER,
+  OverlayPack.DOODLE,
+  OverlayPack.COMFORTAA,
+  // Playful Google Fonts
+  OverlayPack.BANGERS,
+  OverlayPack.FRECKLE_FACE,
+  OverlayPack.ATKINSON,
+  OverlayPack.CHEWY,
+  OverlayPack.LUCKIEST_GUY,
+  // Clean & Professional
+  OverlayPack.RETRO,
+  OverlayPack.FINLANDICA,
+  OverlayPack.GROOVY,
+  OverlayPack.CHICLE,
+  OverlayPack.ALLERTA,
   OverlayPack.CYBER,
   OverlayPack.GLITCH,
   OverlayPack.DOKDO,
-  OverlayPack.RUBIK_MAZE,
-  OverlayPack.GRIDLOCK,
+  OverlayPack.KDAM,
   // New OFL fonts
-  OverlayPack.BOCALUPO,
   OverlayPack.CAFE24_MOYAMOYA,
-  OverlayPack.KUBO,
   OverlayPack.SPEED_FREAK,
   OverlayPack.BLOCKY,
   OverlayPack.GRITH,
@@ -60,7 +68,6 @@ const ACTIVE_PACKS: OverlayPack[] = [
   OverlayPack.RUNTTI,
   OverlayPack.TACHYO,
   OverlayPack.XANMONO,
-  OverlayPack.CAL_SANS,
 ];
 
 // Overlay variants for the swiper
@@ -69,6 +76,9 @@ const OVERLAY_VARIANTS: { id: OverlayVariant; label: string; icon: string }[] = 
   { id: 'stats-only', label: 'Stats', icon: 'stats' },
   { id: 'hero-stat', label: 'Hero', icon: 'hero' },
   { id: 'route-stats', label: 'Route + Stats', icon: 'route-stats' },
+  { id: 'split-view', label: 'Split', icon: 'split' },
+  { id: 'pace-chart', label: 'Pace', icon: 'chart' },
+  { id: 'elevation-chart', label: 'Elevation', icon: 'elevation' },
   // { id: 'circular', label: 'Circle', icon: 'circle' },
   // { id: 'wavy', label: 'Wave', icon: 'wave' },
   { id: 'create', label: 'Create', icon: 'create' },
@@ -221,6 +231,24 @@ const VariantMiniPreview: React.FC<{ variant: OverlayVariant; color: string }> =
             <div className="w-2 h-1 rounded-sm opacity-60" style={boxStyle} />
             <div className="w-2 h-1 rounded-sm opacity-60" style={boxStyle} />
             <div className="w-2 h-1 rounded-sm opacity-60" style={boxStyle} />
+          </div>
+        </div>
+      );
+    case 'split-view':
+      return (
+        <div className="w-full h-full flex flex-row items-center p-1.5 gap-1.5">
+          {/* Stats on left - 2x2 grid */}
+          <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-0.5">
+            <div className="w-4 h-1.5 rounded-sm" style={boxStyle} />
+            <div className="w-3.5 h-1.5 rounded-sm opacity-80" style={boxStyle} />
+            <div className="w-3.5 h-1.5 rounded-sm opacity-80" style={boxStyle} />
+            <div className="w-4 h-1.5 rounded-sm" style={boxStyle} />
+          </div>
+          {/* Route on right */}
+          <div className="flex-1 flex items-center justify-center">
+            <svg viewBox="0 0 20 24" className="w-full h-full" style={{ stroke: color, fill: 'none', strokeWidth: 2 }}>
+              <path d="M5 20 Q8 8, 12 14 T17 4" />
+            </svg>
           </div>
         </div>
       );
@@ -480,24 +508,35 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   const [currentVariant, setCurrentVariant] = useState<OverlayVariant>(initialVariant);
   const [customColor, setCustomColor] = useState<string | undefined>(undefined);
   const [customRouteColor, setCustomRouteColor] = useState<string | undefined>(undefined);
+  const [customTitleColor, setCustomTitleColor] = useState<string | undefined>(undefined);
+  const [customDateColor, setCustomDateColor] = useState<string | undefined>(undefined);
   const [routeStyle, setRouteStyle] = useState<RouteStyle>('smooth');
   const [showLabels, setShowLabels] = useState(true);
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [colorPickerMode, setColorPickerMode] = useState<'text' | 'route' | 'statsOutline' | 'routeOutline'>('text');
+  const [colorPickerMode, setColorPickerMode] = useState<'text' | 'route' | 'statsOutline' | 'routeOutline' | 'chartBar' | 'chartText' | 'title' | 'date'>('text');
   const [showStatsEditor, setShowStatsEditor] = useState(false);
   const [showStatsListEditor, setShowStatsListEditor] = useState(false);
   const [showMapEditor, setShowMapEditor] = useState(false);
   const [showTitleEditor, setShowTitleEditor] = useState(false);
-  const [showEffectsEditor, setShowEffectsEditor] = useState(false);
   
-  // Visual effects state
-  const [statsEffect, setStatsEffect] = useState<ElementEffect>({ type: 'none', intensity: 50 });
-  const [routeEffect, setRouteEffect] = useState<ElementEffect>({ type: 'none', intensity: 50 });
-  const [effectTarget, setEffectTarget] = useState<'stats' | 'route'>('stats');
+  // Visual effects state (disabled for now)
+  const [statsEffect] = useState<ElementEffect>({ type: 'none', intensity: 50 });
+  const [routeEffect] = useState<ElementEffect>({ type: 'none', intensity: 50 });
   
   // Sticker outline state
   const [statsSticker, setStatsSticker] = useState<StickerOutline>({ enabled: false, thickness: 3, color: '#FFFFFF' });
   const [routeSticker, setRouteSticker] = useState<StickerOutline>({ enabled: false, thickness: 3, color: '#FFFFFF' });
+  
+  // Thickness controls
+  const [routeThickness, setRouteThickness] = useState(1);
+  const [textSize, setTextSize] = useState(1);
+
+  // Chart settings state
+  const [chartBarColor, setChartBarColor] = useState<string | undefined>(undefined);
+  const [chartTextColor, setChartTextColor] = useState<string | undefined>(undefined);
+  const [chartOrientation] = useState<'vertical' | 'horizontal'>('horizontal'); // Always horizontal for long runs
+  const [chartBarEffect, setChartBarEffect] = useState<'solid' | 'gradient-multi' | 'gradient-shine'>('solid');
+  const [showChartEditor, setShowChartEditor] = useState(false);
 
   // Photo upload handlers - with resize for performance
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -565,11 +604,13 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   
   // Default settings per variant type
   const getDefaultVariantSettings = (variant: OverlayVariant) => {
+    // split-view uses 4 stats by default (2x2 grid), others use 3
+    const statsCount = variant === 'split-view' ? 4 : 3;
     return {
       showRoute: true,
       showTitle: false,
       showDate: false,
-      enabledStats: allAvailableStats.filter(s => s.key !== 'date').slice(0, 3).map(s => s.key),
+      enabledStats: allAvailableStats.filter(s => s.key !== 'date').slice(0, statsCount).map(s => s.key),
       createdElements: [] as string[],
     };
   };
@@ -584,7 +625,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   };
   
   const [variantSettings, setVariantSettings] = useState<Record<OverlayVariant, VariantSettings>>(() => {
-    const variants: OverlayVariant[] = ['stats-only', 'route-stats', 'hero-stat', 'create'];
+    const variants: OverlayVariant[] = ['stats-only', 'route-stats', 'hero-stat', 'split-view', 'pace-chart', 'elevation-chart', 'create'];
     const initial: Partial<Record<OverlayVariant, VariantSettings>> = {};
     variants.forEach(v => {
       initial[v] = getDefaultVariantSettings(v);
@@ -728,6 +769,14 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
       }
     };
   }, []);
+
+  // Reset route style to pack default when pack changes
+  useEffect(() => {
+    const packStyle = PACK_STYLES[currentPack];
+    if (packStyle?.routeStyle) {
+      setRouteStyle(packStyle.routeStyle);
+    }
+  }, [currentPack]);
   
   // Legacy swipe handlers kept for pack switching at edges
   const goToNextVariant = useCallback(() => {
@@ -766,6 +815,9 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     }
   };
   
+  // Check if any editor panel is open
+  const isAnyPanelOpen = showStatsEditor || showStatsListEditor || showMapEditor || showTitleEditor || showColorPicker || showCreateMenu || showChartEditor;
+  
   // Helper to close all editor panels and unlock preview size
   const closeAllPanels = () => {
     setShowStatsEditor(false);
@@ -774,7 +826,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     setShowTitleEditor(false);
     setShowColorPicker(false);
     setShowCreateMenu(false);
-    setShowEffectsEditor(false);
+    setShowChartEditor(false);
     setLockedPreviewSize(null); // Unlock when all panels closed
   };
   
@@ -783,7 +835,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     if (!createdElements.includes(elementType)) {
       setCreatedElements(prev => [...prev, elementType]);
     }
-    setShowCreateMenu(false);
+    // Menu stays open so user can add more elements
   };
   
   // Remove element from create canvas
@@ -809,15 +861,49 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     try {
       // Wait for all fonts to be loaded before capturing
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 200));
       
+      // Use higher pixel ratio for better quality on mobile
+      // Mobile screens are smaller so we need higher ratio to get good resolution
       const dataUrl = await toPng(exportRef.current, {
         cacheBust: true,
-        pixelRatio: 3,
+        pixelRatio: 4, // Increased from 3 for better quality
         backgroundColor: undefined,
         skipFonts: false,
+        quality: 1.0, // Maximum quality
+        canvasWidth: exportRef.current.offsetWidth * 4,
+        canvasHeight: exportRef.current.offsetHeight * 4,
       });
       
+      // On native iOS/Android, use Capacitor Share
+      if (Capacitor.isNativePlatform()) {
+        try {
+          // Save to a temporary file first
+          const fileName = `statik-overlay-${Date.now()}.png`;
+          const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+          
+          const savedFile = await Filesystem.writeFile({
+            path: fileName,
+            data: base64Data,
+            directory: Directory.Cache,
+          });
+          
+          // Share the file - this opens the share sheet where user can save to Photos
+          await Share.share({
+            title: 'Save Overlay',
+            files: [savedFile.uri],
+          });
+          
+          setExportSuccess(true);
+          setTimeout(() => setExportSuccess(false), 2000);
+          setIsExporting(false);
+          return;
+        } catch (nativeError) {
+          console.error('Native share failed:', nativeError);
+        }
+      }
+      
+      // Web fallback - use Web Share API or download
       if (navigator.share && navigator.canShare) {
         try {
           const blob = await (await fetch(dataUrl)).blob();
@@ -838,6 +924,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         }
       }
       
+      // Final fallback - download link
       const link = document.createElement('a');
       link.download = `overlay-${Date.now()}.png`;
       link.href = dataUrl;
@@ -856,48 +943,55 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      {/* Header with back button and save only */}
-      <div className="flex items-center justify-between px-4 pt-14 pb-3 bg-zinc-900/90">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 hover:bg-zinc-700 transition-colors"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6"/>
-          </svg>
-        </button>
-        
-        {/* Spacer */}
-        <div className="flex-1" />
-        
-        {/* Save button only */}
-        <button
-          onClick={handleSave}
-          disabled={isExporting}
-          className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${
-            exportSuccess
-              ? 'bg-green-500 border-green-500 text-white'
-              : isExporting
-              ? 'bg-zinc-700 border-zinc-600 text-zinc-400 cursor-wait'
-              : 'bg-[#CCFF00] border-[#CCFF00] text-black hover:bg-[#b8e600] active:scale-95'
-          }`}
-          title="Save to Photos"
-        >
-          {exportSuccess ? (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5"/>
+      {/* Header with back button and save - hidden when panels are open */}
+      {!isAnyPanelOpen && (
+        <div className="flex items-center justify-between px-4 pt-14 pb-3 bg-zinc-900/90">
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-400 hover:bg-zinc-700 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
             </svg>
-          ) : isExporting ? (
-            <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-              <polyline points="7 10 12 15 17 10"/>
-              <line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-          )}
-        </button>
-      </div>
+          </button>
+          
+          {/* Spacer */}
+          <div className="flex-1" />
+          
+          {/* Save button only */}
+          <button
+            onClick={handleSave}
+            disabled={isExporting}
+            className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${
+              exportSuccess
+                ? 'bg-green-500 border-green-500 text-white'
+                : isExporting
+                ? 'bg-zinc-700 border-zinc-600 text-zinc-400 cursor-wait'
+                : 'bg-[#CCFF00] border-[#CCFF00] text-black hover:bg-[#b8e600] active:scale-95'
+            }`}
+            title="Save to Photos"
+          >
+            {exportSuccess ? (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5"/>
+              </svg>
+            ) : isExporting ? (
+              <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            )}
+          </button>
+        </div>
+      )}
+      
+      {/* Compact top bar when panels are open - just safe area padding */}
+      {isAnyPanelOpen && (
+        <div className="pt-12" />
+      )}
       
       {/* Hidden file input for photo upload */}
       <input
@@ -908,123 +1002,110 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         className="hidden"
       />
       
-      {/* Toolbar buttons - Labels, Map toggle, Color, Photo */}
-      <div className="bg-zinc-900/60 border-b border-white/5 px-4 py-2">
-        <div className="flex justify-center gap-2">
-          {/* Photo upload/remove button */}
-          <button
-            onClick={backgroundImage ? handleRemovePhoto : handlePhotoButtonClick}
-            disabled={isLoadingImage}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
-              isLoadingImage
-                ? 'bg-zinc-800 text-zinc-400 border-white/10 cursor-wait'
-                : backgroundImage 
+      {/* Toolbar buttons - hidden when panels are open */}
+      {!isAnyPanelOpen && (
+        <div className="bg-zinc-900/60 border-b border-white/5 px-4 py-2">
+          <div className="flex justify-center gap-2">
+            {/* Photo upload/remove button */}
+            <button
+              onClick={backgroundImage ? handleRemovePhoto : handlePhotoButtonClick}
+              disabled={isLoadingImage}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
+                isLoadingImage
+                  ? 'bg-zinc-800 text-zinc-400 border-white/10 cursor-wait'
+                  : backgroundImage 
+                    ? 'bg-white text-black border-white' 
+                    : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
+              }`}
+              title={isLoadingImage ? 'Loading...' : backgroundImage ? 'Remove photo' : 'Add photo'}
+            >
+              {isLoadingImage ? (
+                <div className="w-4 h-4 border-2 border-zinc-600 border-t-white rounded-full animate-spin" />
+              ) : backgroundImage ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              )}
+            </button>
+            
+            {/* Labels toggle (T button) */}
+            <button
+              onClick={() => setShowLabels(!showLabels)}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
+                showLabels 
                   ? 'bg-white text-black border-white' 
                   : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
-            }`}
-            title={isLoadingImage ? 'Loading...' : backgroundImage ? 'Remove photo' : 'Add photo'}
-          >
-            {isLoadingImage ? (
-              <div className="w-4 h-4 border-2 border-zinc-600 border-t-white rounded-full animate-spin" />
-            ) : backgroundImage ? (
+              }`}
+              title={showLabels ? 'Hide labels' : 'Show labels'}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+                <path d="M4 7V4h16v3"/>
+                <path d="M9 20h6"/>
+                <path d="M12 4v16"/>
               </svg>
-            ) : (
+            </button>
+            
+            {/* Map/Route toggle */}
+            <button
+              onClick={() => setShowRoute(!showRoute)}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
+                showRoute 
+                  ? 'bg-white text-black border-white' 
+                  : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
+              }`}
+              title={showRoute ? 'Hide route' : 'Show route'}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
+                <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
+                <path d="M9 3v15"/>
+                <path d="M15 6v15"/>
               </svg>
-            )}
-          </button>
-          
-          {/* Labels toggle (T button) */}
-          <button
-            onClick={() => setShowLabels(!showLabels)}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
-              showLabels 
-                ? 'bg-white text-black border-white' 
-                : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
-            }`}
-            title={showLabels ? 'Hide labels' : 'Show labels'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 7V4h16v3"/>
-              <path d="M9 20h6"/>
-              <path d="M12 4v16"/>
-            </svg>
-          </button>
-          
-          {/* Map/Route toggle */}
-          <button
-            onClick={() => setShowRoute(!showRoute)}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
-              showRoute 
-                ? 'bg-white text-black border-white' 
-                : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
-            }`}
-            title={showRoute ? 'Hide route' : 'Show route'}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
-              <path d="M9 3v15"/>
-              <path d="M15 6v15"/>
-            </svg>
-          </button>
-          
-          {/* Unified Color picker toggle */}
-          <button
-            onClick={() => {
-              setShowColorPicker(!showColorPicker);
-              setShowStatsEditor(false);
-              setShowStatsListEditor(false);
-              setShowMapEditor(false);
-            }}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
-              showColorPicker
-                ? 'bg-white text-black border-white' 
-                : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
-            }`}
-            title="Colors"
-          >
-            {/* Color wheel / palette icon with gradient preview */}
-            <div className="w-5 h-5 rounded-full border-2 border-zinc-400 overflow-hidden relative">
-              <div 
-                className="absolute inset-0"
-                style={{ 
-                  background: `conic-gradient(from 0deg, 
-                    ${customColor || PACK_STYLES[currentPack]?.color || '#fff'} 0deg 180deg,
-                    ${customRouteColor || PACK_STYLES[currentPack]?.routeColor || '#fff'} 180deg 360deg
-                  )`,
-                }}
-              />
-            </div>
-          </button>
+            </button>
+            
+            {/* Unified Color picker toggle */}
+            <button
+              onClick={() => {
+                setShowColorPicker(!showColorPicker);
+                setShowStatsEditor(false);
+                setShowStatsListEditor(false);
+                setShowMapEditor(false);
+              }}
+              className={`w-9 h-9 rounded-full border flex items-center justify-center transition-all ${
+                showColorPicker
+                  ? 'bg-white text-black border-white' 
+                  : 'bg-zinc-800 text-zinc-400 border-white/10 hover:bg-zinc-700'
+              }`}
+              title="Colors"
+            >
+              {/* Color wheel / palette icon with gradient preview */}
+              <div className="w-5 h-5 rounded-full border-2 border-zinc-400 overflow-hidden relative">
+                <div 
+                  className="absolute inset-0"
+                  style={{ 
+                    background: `conic-gradient(from 0deg, 
+                      ${customColor || PACK_STYLES[currentPack]?.color || '#fff'} 0deg 180deg,
+                      ${customRouteColor || PACK_STYLES[currentPack]?.routeColor || '#fff'} 180deg 360deg
+                    )`,
+                  }}
+                />
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Preview Area - horizontal carousel */}
       <div 
         className="flex-1 flex flex-col overflow-hidden relative"
         onClick={() => { closeAllPanels(); setEditingElementType(null); }}
       >
-        {/* Pack name indicator at top */}
-        <div className="flex justify-center py-2">
-          <div className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm">
-            <span 
-              className="text-xs font-bold uppercase tracking-wider"
-              style={{ 
-                fontFamily: PACK_TAB_STYLES[currentPack]?.font,
-                color: PACK_TAB_STYLES[currentPack]?.color || '#fff',
-              }}
-            >
-              {PACK_CONFIG[currentPack].label}
-            </span>
-          </div>
-        </div>
-        
         {/* Horizontal scrolling carousel */}
         <div
           ref={carouselRef}
@@ -1048,15 +1129,15 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 key={variant.id}
                 className={`flex-shrink-0 snap-center transition-all duration-200 ${isActive ? 'scale-100 opacity-100' : 'scale-[0.92] opacity-50'}`}
                 style={{ 
-                  width: '88%',
-                  maxWidth: '400px', // Limit width on larger screens like iPad
+                  width: '92%',
+                  maxWidth: '420px', // Limit width on larger screens like iPad
                 }}
               >
                 <div 
                   ref={isActive ? previewContainerRef : undefined}
                   className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10 w-full"
                   style={{
-                    aspectRatio: imageAspectRatio ?? 9/16,
+                    aspectRatio: imageAspectRatio ?? 3/4,
                     maxHeight: 'calc(100vh - 280px)', // Ensure it fits within viewport
                   }}
                 >
@@ -1099,6 +1180,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                       variant={variant.id}
                       customColor={customColor}
                       customRouteColor={customRouteColor}
+                      customTitleColor={customTitleColor}
+                      customDateColor={customDateColor}
                       customRouteStyle={routeStyle}
                       showLabels={showLabels}
                       showRoute={settings?.showRoute ?? true}
@@ -1115,6 +1198,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                       routeEffect={routeEffect}
                       statsSticker={statsSticker}
                       routeSticker={routeSticker}
+                      routeThickness={routeThickness}
+                      textSize={textSize}
                       onStatsTap={isActive ? (elementType) => {
                         lockPreviewSize();
                         setShowStatsEditor(true);
@@ -1143,7 +1228,34 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                         setShowTitleEditor(true);
                         setShowColorPicker(false);
                         setShowCreateMenu(false);
+                        setShowChartEditor(false);
                         setEditingElementType('title');
+                      } : undefined}
+                      onDateTap={isActive ? () => {
+                        lockPreviewSize();
+                        setShowStatsEditor(false);
+                        setShowStatsListEditor(false);
+                        setShowMapEditor(false);
+                        setShowTitleEditor(true);
+                        setShowColorPicker(false);
+                        setShowCreateMenu(false);
+                        setShowChartEditor(false);
+                        setEditingElementType('date');
+                      } : undefined}
+                      chartBarColor={chartBarColor}
+                      chartTextColor={chartTextColor}
+                      chartOrientation={chartOrientation}
+                      chartBarEffect={chartBarEffect}
+                      onChartTap={isActive ? () => {
+                        lockPreviewSize();
+                        setShowStatsEditor(false);
+                        setShowStatsListEditor(false);
+                        setShowMapEditor(false);
+                        setShowTitleEditor(false);
+                        setShowColorPicker(false);
+                        setShowCreateMenu(false);
+                        setShowChartEditor(true);
+                        setEditingElementType('chart');
                       } : undefined}
                     />
                   </div>
@@ -1217,6 +1329,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 <div className="w-4 h-4 rounded-full border-2 border-zinc-600" style={{ backgroundColor: customColor || PACK_STYLES[currentPack]?.color || '#fff' }} />
                 <span className="text-xs text-zinc-300">Color</span>
               </button>
+              {/* Sticker feature temporarily disabled - will revisit later
               <button
                 onClick={() => setStatsSticker(prev => ({ ...prev, enabled: !prev.enabled }))}
                 className={`flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all ${
@@ -1228,8 +1341,9 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>
                 </svg>
-                <span className={`text-xs ${statsSticker.enabled ? 'text-white' : 'text-zinc-400'}`}>Outline</span>
+                <span className={`text-xs ${statsSticker.enabled ? 'text-white' : 'text-zinc-400'}`}>Sticker</span>
               </button>
+              */}
               {/* Remove button for create mode */}
               {currentVariant === 'create' && editingElementType && (
                 <button
@@ -1244,15 +1358,15 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               )}
             </div>
             
-            {/* Outline options - only show when enabled */}
+            {/* Sticker options - temporarily disabled
             {statsSticker.enabled && (
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-3">
                 <button
                   onClick={() => { setShowStatsEditor(false); setColorPickerMode('statsOutline'); setShowColorPicker(true); }}
                   className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-zinc-800 border border-zinc-700"
                 >
                   <div className="w-4 h-4 rounded-full border-2 border-zinc-600" style={{ backgroundColor: statsSticker.color }} />
-                  <span className="text-xs text-zinc-400">Outline Color</span>
+                  <span className="text-xs text-zinc-400">Sticker Color</span>
                 </button>
                 <div className="flex-1 flex items-center gap-2 p-2.5 rounded-xl bg-zinc-800 border border-zinc-700">
                   <span className="text-[10px] text-zinc-500">Size</span>
@@ -1267,6 +1381,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 </div>
               </div>
             )}
+            */}
           </div>
         ) : showStatsListEditor ? (
           <div className="p-4 max-h-[45vh] overflow-y-auto">
@@ -1327,6 +1442,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 <div className="w-4 h-4 rounded-full border-2 border-zinc-600" style={{ backgroundColor: customRouteColor || PACK_STYLES[currentPack]?.routeColor || '#fff' }} />
                 <span className="text-xs text-zinc-300">Color</span>
               </button>
+              {/* Sticker feature temporarily disabled - will revisit later
               <button
                 onClick={() => setRouteSticker({ ...routeSticker, enabled: !routeSticker.enabled })}
                 className={`flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl transition-all ${
@@ -1338,8 +1454,9 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <rect x="3" y="3" width="18" height="18" rx="2"/>
                 </svg>
-                <span className={`text-xs ${routeSticker.enabled ? 'text-white' : 'text-zinc-400'}`}>Outline</span>
+                <span className={`text-xs ${routeSticker.enabled ? 'text-white' : 'text-zinc-400'}`}>Sticker</span>
               </button>
+              */}
               {/* Remove button for create mode */}
               {currentVariant === 'create' && editingElementType === 'route' && (
                 <button
@@ -1354,7 +1471,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               )}
             </div>
             
-            {/* Outline options - only show when enabled */}
+            {/* Sticker options - temporarily disabled
             {routeSticker.enabled && (
               <div className="flex gap-2 mb-3">
                 <button
@@ -1362,7 +1479,7 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                   className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-800 border border-zinc-700"
                 >
                   <div className="w-4 h-4 rounded-full border border-zinc-600" style={{ backgroundColor: routeSticker.color }} />
-                  <span className="text-xs text-zinc-400">Outline Color</span>
+                  <span className="text-xs text-zinc-400">Sticker Color</span>
                 </button>
                 <div className="flex-1 flex items-center gap-2 p-2.5 rounded-xl bg-zinc-800 border border-zinc-700">
                   <span className="text-[10px] text-zinc-500">Size</span>
@@ -1378,6 +1495,22 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                 </div>
               </div>
             )}
+            */}
+            
+            {/* Route Thickness slider */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-800 border border-zinc-700 mb-3">
+              <span className="text-xs text-zinc-400 whitespace-nowrap">Thickness</span>
+              <input
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={routeThickness}
+                onChange={(e) => setRouteThickness(parseFloat(e.target.value))}
+                className="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#CCFF00]"
+              />
+              <span className="text-xs text-zinc-500 w-8 text-right">{Math.round(routeThickness * 100)}%</span>
+            </div>
             
             {/* Route Style selector */}
             <div className="mb-2">
@@ -1407,8 +1540,8 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                             <div className="absolute top-0 left-0 w-full h-1 rounded-full" style={{ backgroundColor: previewColor }} />
                           </div>
                         )}
-                        {style.id === 'glow' && (
-                          <div className="w-full h-1.5 rounded-full" style={{ backgroundColor: previewColor, boxShadow: `0 0 6px ${previewColor}` }} />
+                        {style.id === 'paint' && (
+                          <div className="w-full h-0.5 rounded-full" style={{ backgroundColor: previewColor }} />
                         )}
                         {style.id === 'gradient' && (
                           <div className="w-full h-1 rounded-full" style={{ background: 'linear-gradient(90deg, #ff6b6b 0%, #feca57 25%, #48dbfb 50%, #ff9ff3 75%, #54a0ff 100%)' }} />
@@ -1438,34 +1571,63 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
         ) : showTitleEditor ? (
           <div className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-white font-bold text-sm uppercase tracking-wider">Edit Title</h3>
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider">
+                {editingElementType === 'date' ? 'Edit Date' : 'Edit Title'}
+              </h3>
               <button onClick={() => { setShowTitleEditor(false); setEditingElementType(null); }} className="text-zinc-400 hover:text-white">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6L6 18M6 6l12 12"/>
                 </svg>
               </button>
             </div>
-            <input
-              type="text"
-              value={activityTitle}
-              onChange={(e) => setActivityTitle(e.target.value)}
-              placeholder="Enter title..."
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#CCFF00] mb-3"
-            />
-            <div className="flex gap-3">
+            
+            {/* Title text input - only show for title, not date */}
+            {editingElementType !== 'date' && (
+              <input
+                type="text"
+                value={activityTitle}
+                onChange={(e) => setActivityTitle(e.target.value)}
+                placeholder="Enter title..."
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#CCFF00] mb-3"
+              />
+            )}
+            
+            {/* Color picker for title/date */}
+            <div className="mb-3">
+              <span className="text-xs text-zinc-400 uppercase tracking-wider mb-2 block">Color</span>
               <button
-                onClick={() => setShowTitle(!showTitle)}
-                className={`flex-1 flex items-center justify-between p-3 rounded-xl transition-all ${showTitle ? 'bg-[#CCFF00]/20 border border-[#CCFF00]/50' : 'bg-zinc-800 border border-zinc-700'}`}
+                onClick={() => {
+                  setColorPickerMode(editingElementType === 'date' ? 'date' : 'title');
+                  setShowColorPicker(true);
+                  setShowTitleEditor(false);
+                }}
+                className="w-full flex items-center justify-between p-3 rounded-xl bg-zinc-800 border border-zinc-700 hover:border-[#CCFF00]/50"
               >
-                <span className={`text-sm font-medium ${showTitle ? 'text-white' : 'text-zinc-400'}`}>Show Title</span>
-                <div className={`w-10 h-6 rounded-full transition-all relative ${showTitle ? 'bg-[#CCFF00]' : 'bg-zinc-600'}`}>
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${showTitle ? 'left-5' : 'left-1'}`} />
-                </div>
+                <span className="text-sm text-zinc-300">Change Color</span>
+                <div 
+                  className="w-6 h-6 rounded-full border-2 border-white/20"
+                  style={{ backgroundColor: editingElementType === 'date' ? (customDateColor || customColor || '#FFFFFF') : (customTitleColor || customColor || '#FFFFFF') }}
+                />
               </button>
-              {/* Remove button for create mode */}
-              {currentVariant === 'create' && editingElementType === 'title' && (
+            </div>
+            
+            <div className="flex gap-3">
+              {/* Show/hide toggle - only for title, not date */}
+              {editingElementType !== 'date' && (
                 <button
-                  onClick={() => removeCreateElement('title')}
+                  onClick={() => setShowTitle(!showTitle)}
+                  className={`flex-1 flex items-center justify-between p-3 rounded-xl transition-all ${showTitle ? 'bg-[#CCFF00]/20 border border-[#CCFF00]/50' : 'bg-zinc-800 border border-zinc-700'}`}
+                >
+                  <span className={`text-sm font-medium ${showTitle ? 'text-white' : 'text-zinc-400'}`}>Show Title</span>
+                  <div className={`w-10 h-6 rounded-full transition-all relative ${showTitle ? 'bg-[#CCFF00]' : 'bg-zinc-600'}`}>
+                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${showTitle ? 'left-5' : 'left-1'}`} />
+                  </div>
+                </button>
+              )}
+              {/* Remove button for create mode */}
+              {currentVariant === 'create' && (editingElementType === 'title' || editingElementType === 'date') && (
+                <button
+                  onClick={() => removeCreateElement(editingElementType || 'title')}
                   className="flex items-center justify-center gap-2 p-3 rounded-xl bg-red-500/20 border border-red-500/50 hover:bg-red-500/30"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-400">
@@ -1474,6 +1636,72 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
                   <span className="text-sm text-red-400">Remove</span>
                 </button>
               )}
+            </div>
+          </div>
+        ) : showChartEditor ? (
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-white font-bold text-sm uppercase tracking-wider">Edit Chart</h3>
+              <button onClick={() => { setShowChartEditor(false); setEditingElementType(null); }} className="text-zinc-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+            
+            {/* Bar Effect */}
+            <div className="mb-3">
+              <span className="text-xs text-zinc-400 uppercase tracking-wider mb-2 block">Bar Style</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setChartBarEffect('solid')}
+                  className={`flex-1 p-2.5 rounded-xl transition-all text-xs ${
+                    chartBarEffect === 'solid' 
+                      ? 'bg-[#CCFF00]/20 border border-[#CCFF00]/50 text-white' 
+                      : 'bg-zinc-800 border border-zinc-700 text-zinc-400'
+                  }`}
+                >
+                  Solid
+                </button>
+                <button
+                  onClick={() => setChartBarEffect('gradient-shine')}
+                  className={`flex-1 p-2.5 rounded-xl transition-all text-xs ${
+                    chartBarEffect === 'gradient-shine' 
+                      ? 'bg-[#CCFF00]/20 border border-[#CCFF00]/50 text-white' 
+                      : 'bg-zinc-800 border border-zinc-700 text-zinc-400'
+                  }`}
+                >
+                  Shine
+                </button>
+                <button
+                  onClick={() => setChartBarEffect('gradient-multi')}
+                  className={`flex-1 p-2.5 rounded-xl transition-all text-xs ${
+                    chartBarEffect === 'gradient-multi' 
+                      ? 'bg-[#CCFF00]/20 border border-[#CCFF00]/50 text-white' 
+                      : 'bg-zinc-800 border border-zinc-700 text-zinc-400'
+                  }`}
+                >
+                  Rainbow
+                </button>
+              </div>
+            </div>
+            
+            {/* Colors row */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setShowChartEditor(false); setColorPickerMode('chartBar'); setShowColorPicker(true); }}
+                className="flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl bg-zinc-800 border border-zinc-700"
+              >
+                <div className="w-4 h-4 rounded-full border-2 border-zinc-600" style={{ backgroundColor: chartBarColor || PACK_STYLES[currentPack]?.routeColor || '#fff' }} />
+                <span className="text-xs text-zinc-300">Bar Color</span>
+              </button>
+              <button
+                onClick={() => { setShowChartEditor(false); setColorPickerMode('chartText'); setShowColorPicker(true); }}
+                className="flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl bg-zinc-800 border border-zinc-700"
+              >
+                <div className="w-4 h-4 rounded-full border-2 border-zinc-600" style={{ backgroundColor: chartTextColor || PACK_STYLES[currentPack]?.color || '#fff' }} />
+                <span className="text-xs text-zinc-300">Text Color</span>
+              </button>
             </div>
           </div>
         ) : showCreateMenu ? (
@@ -1630,9 +1858,12 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
           <div className="px-4 py-3">
             <div className="flex items-center justify-between mb-3">
               {/* Show title based on color picker mode */}
-              {(colorPickerMode === 'statsOutline' || colorPickerMode === 'routeOutline') ? (
+              {(colorPickerMode === 'statsOutline' || colorPickerMode === 'routeOutline' || colorPickerMode === 'title' || colorPickerMode === 'date') ? (
                 <h3 className="text-white font-bold text-sm uppercase tracking-wider">
-                  {colorPickerMode === 'statsOutline' ? 'Stats Outline' : 'Route Outline'} Color
+                  {colorPickerMode === 'statsOutline' ? 'Stats Outline' : 
+                   colorPickerMode === 'routeOutline' ? 'Route Outline' :
+                   colorPickerMode === 'title' ? 'Title' :
+                   colorPickerMode === 'date' ? 'Date' : ''} Color
                 </h3>
               ) : (
                 /* Segmented toggle for Stats/Map color */
@@ -1675,112 +1906,25 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               value={
                 colorPickerMode === 'text' ? customColor :
                 colorPickerMode === 'route' ? customRouteColor :
+                colorPickerMode === 'title' ? customTitleColor :
+                colorPickerMode === 'date' ? customDateColor :
                 colorPickerMode === 'statsOutline' ? statsSticker.color :
+                colorPickerMode === 'chartBar' ? chartBarColor :
+                colorPickerMode === 'chartText' ? chartTextColor :
                 routeSticker.color
               }
               onChange={(color) => {
                 if (colorPickerMode === 'text') setCustomColor(color);
                 else if (colorPickerMode === 'route') setCustomRouteColor(color);
+                else if (colorPickerMode === 'title') setCustomTitleColor(color);
+                else if (colorPickerMode === 'date') setCustomDateColor(color);
                 else if (colorPickerMode === 'statsOutline') setStatsSticker({ ...statsSticker, color });
+                else if (colorPickerMode === 'chartBar') setChartBarColor(color);
+                else if (colorPickerMode === 'chartText') setChartTextColor(color);
                 else setRouteSticker({ ...routeSticker, color });
               }}
               defaultColor={PACK_TAB_STYLES[currentPack]?.color || '#FFFFFF'}
             />
-          </div>
-        ) : showEffectsEditor ? (
-          <div className="px-4 py-3">
-            <div className="flex items-center justify-between mb-3">
-              {/* Segmented toggle for Stats/Route effects */}
-              <div className="flex items-center bg-zinc-800 rounded-full p-1">
-                <button 
-                  onClick={() => setEffectTarget('stats')}
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                    effectTarget === 'stats' 
-                      ? 'bg-white text-black' 
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
-                  </svg>
-                  Stats
-                </button>
-                <button 
-                  onClick={() => setEffectTarget('route')}
-                  className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                    effectTarget === 'route' 
-                      ? 'bg-white text-black' 
-                      : 'text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/>
-                  </svg>
-                  Route
-                </button>
-              </div>
-              <button onClick={() => setShowEffectsEditor(false)} className="text-zinc-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-            
-            {/* Effect type grid - 4 columns to fit all options */}
-            <div className="grid grid-cols-4 gap-1.5 mb-4">
-              {EFFECT_OPTIONS.map((option) => {
-                const currentEffect = effectTarget === 'stats' ? statsEffect : routeEffect;
-                const isActive = currentEffect.type === option.type;
-                return (
-                  <button
-                    key={option.type}
-                    onClick={() => {
-                      const newEffect = { type: option.type, intensity: currentEffect.intensity };
-                      if (effectTarget === 'stats') {
-                        setStatsEffect(newEffect);
-                      } else {
-                        setRouteEffect(newEffect);
-                      }
-                    }}
-                    className={`flex flex-col items-center gap-0.5 py-2 px-1 rounded-lg transition-all ${
-                      isActive 
-                        ? 'bg-[#CCFF00]/20 border border-[#CCFF00]/50' 
-                        : 'bg-zinc-800 border border-zinc-700 hover:border-zinc-600'
-                    }`}
-                  >
-                    <span className="text-base">{option.icon}</span>
-                    <span className={`text-[9px] ${isActive ? 'text-white' : 'text-zinc-400'}`}>{option.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-            
-            {/* Intensity slider - only show if effect is not 'none' */}
-            {(effectTarget === 'stats' ? statsEffect.type : routeEffect.type) !== 'none' && (
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Intensity</span>
-                  <span className="text-xs text-zinc-500">
-                    {effectTarget === 'stats' ? statsEffect.intensity : routeEffect.intensity}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="10"
-                  max="100"
-                  value={effectTarget === 'stats' ? statsEffect.intensity : routeEffect.intensity}
-                  onChange={(e) => {
-                    const newIntensity = parseInt(e.target.value);
-                    if (effectTarget === 'stats') {
-                      setStatsEffect(prev => ({ ...prev, intensity: newIntensity }));
-                    } else {
-                      setRouteEffect(prev => ({ ...prev, intensity: newIntensity }));
-                    }
-                  }}
-                  className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#CCFF00]"
-                />
-              </div>
-            )}
           </div>
         ) : (
           /* Default bottom bar - pack tabs only */

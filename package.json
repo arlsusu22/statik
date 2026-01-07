@@ -16,7 +16,11 @@
     "@capacitor/browser": "^8.0.0",
     "@capacitor/cli": "^8.0.0",
     "@capacitor/core": "^8.0.0",
+    "@capacitor/filesystem": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
+    "@capacitor/preferences": "^8.0.0",
+    "@capacitor/share": "^8.0.0",
+    "@revenuecat/purchases-capacitor": "^12.0.1",
     "dom-to-image-more": "^3.7.2",
     "downloadjs": "^1.4.7",
     "html-to-image": "^1.11.13",
@@ -26,9 +30,13 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^22.14.0",
     "@vercel/node": "^5.5.16",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
