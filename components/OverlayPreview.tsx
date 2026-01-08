@@ -496,6 +496,15 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  
+  // Fun loading messages that rotate
+  const loadingMessages = [
+    "Making it pixel perfect...",
+    "Adding some magic ✨",
+    "Almost there...",
+    "Worth the wait!",
+  ];
   const [isLoadingImage, setIsLoadingImage] = useState(false);
   const [backgroundImage, setBackgroundImage] = useState<string | null>(initialBackgroundImage || null);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(initialAspectRatio || null);
@@ -736,6 +745,20 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
     }, 100);
   }, [currentVariantIndex]);
   
+  // Rotate loading messages while exporting
+  useEffect(() => {
+    if (!isExporting) {
+      setLoadingMessageIndex(0);
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      setLoadingMessageIndex(prev => (prev + 1) % loadingMessages.length);
+    }, 1200);
+    
+    return () => clearInterval(interval);
+  }, [isExporting, loadingMessages.length]);
+  
   // Scroll to current variant when it changes (e.g., when pack changes)
   useEffect(() => {
     if (!carouselRef.current) return;
@@ -854,31 +877,29 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
   };
 
   const handleSave = async () => {
-    if (!exportRef.current) return;
+    if (!exportRef.current || isExporting) return;
     
     setIsExporting(true);
     
     try {
       // Wait for all fonts to be loaded before capturing
       await document.fonts.ready;
-      await new Promise(resolve => setTimeout(resolve, 200));
       
-      // Use higher pixel ratio for better quality on mobile
-      // Mobile screens are smaller so we need higher ratio to get good resolution
+      // Delay to ensure all content (including SVG routes) is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Export settings
       const dataUrl = await toPng(exportRef.current, {
         cacheBust: true,
-        pixelRatio: 4, // Increased from 3 for better quality
+        pixelRatio: 3,
         backgroundColor: undefined,
         skipFonts: false,
-        quality: 1.0, // Maximum quality
-        canvasWidth: exportRef.current.offsetWidth * 4,
-        canvasHeight: exportRef.current.offsetHeight * 4,
+        quality: 0.92,
       });
       
-      // On native iOS/Android, use Capacitor Share
+      // On native iOS/Android
       if (Capacitor.isNativePlatform()) {
         try {
-          // Save to a temporary file first
           const fileName = `statik-overlay-${Date.now()}.png`;
           const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
           
@@ -888,18 +909,25 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
             directory: Directory.Cache,
           });
           
-          // Share the file - this opens the share sheet where user can save to Photos
-          await Share.share({
+          // Share returns result - check if user actually shared
+          const shareResult = await Share.share({
             title: 'Save Overlay',
             files: [savedFile.uri],
           });
           
-          setExportSuccess(true);
-          setTimeout(() => setExportSuccess(false), 2000);
+          // Only show success if user actually shared (not cancelled)
+          // On iOS, activityType is set when user completes share action
+          if (shareResult.activityType) {
+            setExportSuccess(true);
+            setTimeout(() => setExportSuccess(false), 2000);
+          }
           setIsExporting(false);
           return;
         } catch (nativeError) {
-          console.error('Native share failed:', nativeError);
+          // User cancelled or share failed - don't show success
+          console.log('Share cancelled or failed:', nativeError);
+          setIsExporting(false);
+          return;
         }
       }
       
@@ -914,13 +942,17 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
               files: [file],
               title: 'Activity Overlay',
             });
+            // Web share completed successfully
             setExportSuccess(true);
             setTimeout(() => setExportSuccess(false), 2000);
             setIsExporting(false);
             return;
           }
         } catch (shareError) {
-          console.log('Share failed, falling back to download:', shareError);
+          // User cancelled - don't show success
+          console.log('Share cancelled:', shareError);
+          setIsExporting(false);
+          return;
         }
       }
       
@@ -943,6 +975,15 @@ export const OverlayPreview: React.FC<OverlayPreviewProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
+      {/* Fullscreen loading overlay during export */}
+      {isExporting && (
+        <div className="absolute inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center">
+          <div className="w-14 h-14 border-4 border-[#CCFF00] border-t-transparent rounded-full animate-spin mb-5" />
+          <p className="text-white text-xl font-semibold mb-2">Preparing overlay...</p>
+          <p className="text-[#CCFF00] text-sm font-medium animate-pulse">{loadingMessages[loadingMessageIndex]}</p>
+        </div>
+      )}
+      
       {/* Header with back button and save - hidden when panels are open */}
       {!isAnyPanelOpen && (
         <div className="flex items-center justify-between px-4 pt-14 pb-3 bg-zinc-900/90">

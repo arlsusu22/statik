@@ -1961,7 +1961,8 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
     const handleTouchStart = (e: React.TouchEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      setSelectedElement(elementId);
+      // Don't setSelectedElement here - it causes re-render which resets refs
+      // Selection will happen on touch end if it was a tap
       
       // Get fresh transform value from state
       const current = elementTransforms[elementId] || { x: 0, y: 0, scale: 1, rotation: 0 };
@@ -2043,13 +2044,17 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
       if (!isDragging.current) return;
       isDragging.current = false;
       
+      // Save transform FIRST before any state changes that cause re-render
+      const finalTransform = { ...currentTransformRef.current };
+      updateElementTransform(elementId, finalTransform);
+      
       // If touch didn't move significantly, treat as a tap
       if (!hasMoved.current && onTap) {
         onTap();
       }
       
-      // Sync final position to state from our tracked ref
-      updateElementTransform(elementId, { ...currentTransformRef.current });
+      // Select element last (causes re-render, but transform is already saved)
+      setSelectedElement(elementId);
     };
 
     const handlePointerDown = (e: React.PointerEvent) => {
@@ -2087,6 +2092,19 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
     // Combine base transform with user's drag transform
     const combinedTransform = `${baseTransform} translate(${transform.x}px, ${transform.y}px) scale(${transform.scale}) rotate(${transform.rotation}deg)`;
 
+    // Resize handle component
+    const ResizeHandle: React.FC<{ corner: string; position: React.CSSProperties }> = ({ corner, position }) => (
+      <div
+        className="absolute w-4 h-4 bg-[#CCFF00] border-2 border-black rounded-sm cursor-nwse-resize z-50"
+        style={{
+          ...position,
+          touchAction: 'none',
+        }}
+        onPointerDown={(e) => handleResizeStart(e, corner)}
+        onTouchStart={(e) => handleResizeStart(e, corner)}
+      />
+    );
+
     return (
       <div
         ref={elementRef}
@@ -2095,17 +2113,16 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
           ...initialStyle,
           transform: combinedTransform,
           transformOrigin: 'center center',
-          willChange: 'transform',
-          // Prevent layout shifts from selection handles
-          isolation: 'isolate',
           // Prevent iOS text selection and callout
           WebkitUserSelect: 'none',
           userSelect: 'none',
           WebkitTouchCallout: 'none',
+          // Add position relative for handles positioning
+          position: initialStyle.position || 'relative',
         } as React.CSSProperties}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+        onTouchStartCapture={handleTouchStart}
+        onTouchMoveCapture={handleTouchMove}
+        onTouchEndCapture={handleTouchEnd}
         onPointerDown={handlePointerDown}
       >
         {children}
@@ -2135,11 +2152,11 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   
   // Depth shadow settings
   const depthColor = '#000000';
-  const depthOffset = 1;
+  const depthOffset = 2;
   
   // Global outline settings (same as routes - Canvas style)
   const globalOutlineColor = '#000000';
-  const globalOutlineWidth = 2;
+  const globalOutlineWidth = 2.5;
   
   // Global route outline settings (Canvas/CAFE24_MOYAMOYA style for all packs)
   // Clean modern packs skip route outline - use pack's routeOutline setting
@@ -2403,16 +2420,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   const TitleElement = () => {
     if (!showTitle || !activityTitle) return null;
     return (
-      <div 
-        onClick={(e) => { if (onTitleTap && isEditing) { e.stopPropagation(); onTitleTap(); } }}
-        style={{ cursor: isEditing ? 'pointer' : 'default' }}
+      <TransformableWrapper 
+        elementId="title" 
+        className={isPreview ? 'mb-2' : 'mb-4'}
+        onTap={isEditing && onTitleTap ? onTitleTap : undefined}
       >
-        <TransformableWrapper elementId="title" className={isPreview ? 'mb-2' : 'mb-4'}>
-          <StatValue className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}>
-            {activityTitle}
-          </StatValue>
-        </TransformableWrapper>
-      </div>
+        <StatValue className={`text-center ${isPreview ? 'text-xs' : 'text-lg'} font-medium`}>
+          {activityTitle}
+        </StatValue>
+      </TransformableWrapper>
     );
   };
 
@@ -2420,16 +2436,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
   const DateElement = () => {
     if (!showDate || !activityDate) return null;
     return (
-      <div 
-        onClick={(e) => { if (onDateTap && isEditing) { e.stopPropagation(); onDateTap(); } }}
-        style={{ cursor: isEditing ? 'pointer' : 'default' }}
+      <TransformableWrapper 
+        elementId="date" 
+        className={isPreview ? 'mt-2' : 'mt-4'}
+        onTap={isEditing && onDateTap ? onDateTap : undefined}
       >
-        <TransformableWrapper elementId="date" className={isPreview ? 'mt-2' : 'mt-4'}>
-          <StatValue className={`text-center ${isPreview ? 'text-[8px]' : 'text-sm'} opacity-80`}>
-            {activityDate}
-          </StatValue>
-        </TransformableWrapper>
-      </div>
+        <StatValue className={`text-center ${isPreview ? 'text-[8px]' : 'text-sm'} opacity-80`}>
+          {activityDate}
+        </StatValue>
+      </TransformableWrapper>
     );
   };
 
@@ -2445,11 +2460,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
             
             {/* Stats */}
             <div 
-              onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
-              style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
+              style={{ ...getEffectFilter(statsEffect) }}
+              className="touch-none"
             >
               <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
-                <TransformableWrapper elementId="stats" className={`${isPreview ? 'px-2' : 'px-6'}`}>
+                <TransformableWrapper 
+                  elementId="stats" 
+                  className={`${isPreview ? 'px-2' : 'px-6'}`}
+                  onTap={isEditing && onStatsTap ? onStatsTap : undefined}
+                >
                   <div className={`text-center ${isPreview ? 'space-y-1' : 'space-y-2'}`} style={textScaleStyle}>
                     {(isPreview ? prioritizedStats.slice(0, 3) : prioritizedStats).map((stat, i) => (
                       <div key={i} className="whitespace-nowrap">
@@ -2471,11 +2490,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
             {/* Route - right below stats with fixed size */}
             {showRoute && activity.polyline && (
               <div 
-                onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
-                style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
+                style={{ ...getEffectFilter(routeEffect) }}
+                className="touch-none"
               >
                 <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
-                  <TransformableWrapper elementId="route" className={`${isPreview ? 'mt-3 w-24 h-16' : 'mt-4 w-48 h-32'}`}>
+                  <TransformableWrapper 
+                    elementId="route" 
+                    className={`${isPreview ? 'mt-3 w-24 h-16' : 'mt-4 w-48 h-32'}`}
+                    onTap={isEditing && onRouteTap ? onRouteTap : undefined}
+                  >
                     <div className="w-full h-full flex items-center justify-center overflow-hidden">
                       <RoutePolyline
                         polylineEncoded={activity.polyline}
@@ -2515,11 +2538,12 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
             <TitleElement />
             
             <div 
-              className={`flex items-center justify-center ${isPreview ? 'p-2' : 'p-6'}`}
-              onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
-              style={{ cursor: isEditing ? 'pointer' : 'default' }}
+              className={`flex items-center justify-center touch-none ${isPreview ? 'p-2' : 'p-6'}`}
             >
-              <TransformableWrapper elementId="route">
+              <TransformableWrapper 
+                elementId="route"
+                onTap={isEditing && onRouteTap ? onRouteTap : undefined}
+              >
                 {showRoute && activity.polyline ? (
                   <RoutePolyline
                     polylineEncoded={activity.polyline}
@@ -2583,12 +2607,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
             {/* Route - with fixed size and margin to separate from stats */}
             {showRoute && activity.polyline && (
               <div 
-                onClick={(e) => { if (onRouteTap && isEditing) { e.stopPropagation(); onRouteTap(); } }}
-                style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(routeEffect) }}
-                className={isPreview ? 'mb-2' : 'mb-4'}
+                style={{ ...getEffectFilter(routeEffect) }}
+                className={`touch-none ${isPreview ? 'mb-2' : 'mb-4'}`}
               >
                 <MaybeEffect effect={routeEffect} sticker={routeSticker} color={routeColor}>
-                  <TransformableWrapper elementId="route" className={`${isPreview ? 'w-28 h-16' : 'w-72 h-44'}`}>
+                  <TransformableWrapper 
+                    elementId="route" 
+                    className={`${isPreview ? 'w-28 h-16' : 'w-72 h-44'}`}
+                    onTap={isEditing && onRouteTap ? onRouteTap : undefined}
+                  >
                     <div className="w-full h-full flex items-center justify-center overflow-hidden">
                       <RoutePolyline
                         polylineEncoded={activity.polyline}
@@ -2618,11 +2645,15 @@ export const OverlayRenderer: React.FC<OverlayRendererProps> = memo(function Ove
             
             {/* Stats - rows of 3 max */}
             <div 
-              onClick={(e) => { if (onStatsTap && isEditing) { e.stopPropagation(); onStatsTap(); } }}
-              style={{ cursor: isEditing ? 'pointer' : 'default', ...getEffectFilter(statsEffect) }}
+              style={{ ...getEffectFilter(statsEffect) }}
+              className="touch-none"
             >
               <MaybeEffect effect={statsEffect} sticker={statsSticker} color={activeColor}>
-                <TransformableWrapper elementId="stats" className={`${isPreview ? 'mt-1' : 'mt-3'}`}>
+                <TransformableWrapper 
+                  elementId="stats" 
+                  className={`${isPreview ? 'mt-1' : 'mt-3'}`}
+                  onTap={isEditing && onStatsTap ? onStatsTap : undefined}
+                >
                   <div className="flex flex-col items-center gap-1" style={textScaleStyle}>
                     {/* First row - up to 3 stats */}
                     <div className={`flex items-center justify-center ${isPreview ? 'gap-1' : 'gap-x-3'}`}>

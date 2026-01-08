@@ -142,202 +142,71 @@ const RoutePreview: React.FC<{ encodedPolyline?: string; color?: string }> = ({ 
 
 // Fallback Mock Data if no activities are fetched (for dev/demo)
 
-// Coastal point-to-point - runs along shoreline going one direction
-const COASTAL_POLYLINE = 'szywFbclbMeBgAcBiAaBkA_BmA}AoA{AqAyAsAwAuAuAwAsAyAqA{AoA}AmAaBkAcBiAeBgAgBeBiBcBkBaBmB_BoB}AqB{AsBy@wBw@yBu@{Bs@}Bq@_Co@aCm@cCk@eCi@gCg@iCe@kCc@mCa@oC';
+// Colorado Mountain Trail Run - loop trail pattern
+const TRAIL_RUN_POLYLINE = '_`}kFvnqgScP}EiPeDgPiBePo@{OBoOv@_OdBkNlCsMlDyLjE{K~E{JrF{I`GwHlGuGvGsF`HoElHmDxHmCjIqB`JsAxJ{@tKc@tLSxMA|NF`PPfQThRTfST~SLnTFxTEvTQnTa@zSq@~ReAxQyAlPmBzN_CbMuCfKiDnI{DvGmE~E{EpDmFhCyFdBcGpAoG`AuG|@}G`A_HnAcHdBcH~BcH|CcH`E_HdF}GfGwGfHsGbIoGzIiGlJcGxJ_G`KyF~JsF|JmFrJkFfJcFzI_FlIyE`IsExHoErHgEpH_EtHwD~HmDlIcD`JyCzJiCrK{BpLiBnMwAjNeAbOm@xOWfP?rPXrPr@lPpA~OjBjOfCnNdDlM`EhLzE~JvFvInGnHdHhG|HfFnIjE~IvDnJjDxJdD`KjDfKrDjKfEhK`FfK|F~J|GxJ|HlJ~IbJ|JrItKdIjLrHtLdHzLrGvLbGjLtFtKdFvJxEtIlElHdE~F|DnExD~CvDpBxDdAzD\\bEEhEa@vEy@`FiApFuA`GyArG{AdHyAvHsAhImAzIiAlJeAzJgAjKiAvKqA`L_BhLoBlLeCpL}CnLyDlLsEdLmF|KeGpK{GdKkHvJqHbJsHrIkH`IyGnHaGzG}EjGsDzFeCjFmA~EUvEb@lE|AjEtChEdElEnFpEtG|ElHhF|HzFdIlG|HbHnH|HvGvIvFpJnEnKdDjLtBfMdAbNTzNUrOcAfPgBvPiCbQeDjQ{DnQmElQ{EdQcFxPkFdPoFlOwFpN_GlMgGdLuGzJgHhI_IxGyI`FwJjD}KrBaMx@iN@qOu@yPiB{Q{C{RmEsSuFeT_HqT}HqT{IgTqJyScK}RkK_RoKuPmKkOeK}MyJkLeJ}JmIqIsHiHsGgGsFmFmE{EiDqEcCqE}AyEy@gFU_GJyGf@wHbA{IxAyJjByKzBuL`CmMfC_NfCiN~BkNvBiNdB}MtAmM|@wLb@}KF_KUcJw@cIwAiHwBsGwC}FyDoFuEiFqFeFiGiFaHqFsH_GcIoGmIaHsIuHyIgIwIyIsIcJmIkJaImJuHkJcH_JsGoIaG{HmF_HyEcGeEcFsDcEcDgDsCiCgCsB}BcBuByAsBwAsB{AwBkB}BcCiC}CyCaEiDiF_EqGuE}HqFeJkGkKiHkLgIgMeJwMaK_N_L_NyLsMsM_MkN_L}NwJmOkI';
 
-// Out and back tempo - straight line out and back
-const OUT_AND_BACK_POLYLINE = 'o{ywF~hlbMcCaAeCaAgCaAiCaAkCaAmCaAoCaAqCaAsCaAuCaAwCaAuCbAwCbAuCbAsCbAqCbAoCbAmCbAkCbAiCbAgCbAeCbAcCbAaCbA';
+// City Run 9.2km - grid pattern with right-angle turns through city blocks
+const CITY_RUN_POLYLINE = 'crzwFjblbMkFA?oEoFA?qEqFA?sEsFA?oEnFA?qFpFA?rFrFA?tFtFA?oEoFA?qEqFA?sEsFA?uEnFA?pFpFA?rFrFA?tF';
 
-// Switchback hill climb - zigzag going up
-const HILL_CLIMB_POLYLINE = 'kzxwFxelbMaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyCnCyCaCyC';
+// Long Bike Ride 41.8km - real route from Kosovo (Pristina to Ferizaj area)
+const BIKE_RIDE_POLYLINE = 'mydcG}p{_C@EIyBUcAM[C}@Ds@ImASoA_@iDi@Am@MW[y@yDWqAF}ALe@n@]pCaB}CqJg@mB`@YBG@KCM}BsFmB{Em@eBp@QVUxAk@NKT[`@QZ[PYT[n@k@TUt@oAr@o@dC}BnBoBh@g@|@}@JK^[j@o@p@eAl@uANYZe@l@o@d@g@xAiA~B{At@c@LCLINKIUAQ@a@DQl@cAvBoCtAeBrEeEXS\\OzAa@rA]d@IdE]dHuAPMFUL_BHOhA_AEuBEmBH[V`@DUJODCPAFBLJVBj@T`An@x@f@pAv@zAVRDrBZdFVfABbABxAFdAJxCP^@xAHrAHdA@xAFdAHT?bDHdDF|@B`ABF?P@n@@J@hDHvKNpC@dCJnCDlABjB@fA?lAD{@uGGuA@q@d@}ARe@j@WJEtDuAx@QF@tAa@F?pCaGx@gAVQ|@_@POJSXcA\\qAX_@ZG\\Fb@DjAg@d@s@Gq@Cy@vAy@h@SjR_HbIeFtDwBpD{BdJyGd@Uh@El@BxGvBt@N|@Ch@YVu@NkBDoCJyA^qAn@qAbAu@vAk@dBa@bMgC|Bq@`C_AhEkBzAiAvFqF|AeAtAmAzHiJfAo@jAUtIeAbA@~@Er@i@dAg@d@Qf@A`AD~@@f@?t@OrCi@t@]BTFXfBtE^|@HPn@p@`Ab@|@^x@j@XTr@v@p@`Ar@zAv@rBd@~@h@r@bAdApAdA`CzAhGpDbBjAjCvBfC`BdAv@pErDrElD~DzBrCpAb@PdC`AfCr@fAXvEzBhAv@dCxAlBvA|DrDnFoExGaFbD}BpFoDt@c@`Ak@zD{BdJaF`CqAfGkCbCgAlFqBvFmBfF_BbBe@x@WjDy@RGjAYv@Op@QjBc@hKkB~LqBp@M|@Kb@BNALLN@LKBE\\SVQn@I\\GfC[dJwAnGiAnB]tG{A`KsC|EoBn@Ur@SzAm@|DaBrAi@pFkCrBgApAq@tDyB|HeExH}D`@ShCwAlIsElPsIjB_AnH_DxCqApB{@d@M`EqAdCw@tDkA~Ag@TG\\Kf@OjDo@h@Kr@OhBa@jAWr@MvCi@rDk@lC_@JCp@Ip@Kh@G^EZC`@Ed@Ed@E^EPCp@GTCfAG\\CzAI`BKhDSnAEn@AnACvCEd@AxAAJ?xBA|EBtDDX?dBFxAFfADd@BZ@jAFzEV^B|ANn@FpCZtDd@ZDlANdInAJBt@Jt@P|@PbEz@|@Rl@PJBn@NtI`C`FdBvG`CfJfDr@TFBp@V`DlApBv@t@ZjFnBNFte@jQzBz@zJvDfA`@lAd@zLrEl@THBTHPH|@^|O|FpAd@bC|@`Cz@vDtA`A^hN|EdCp@|Bl@dAZpA^v@Rd@JzD`AjGvA|Dx@n@LtB`@`Dp@vMxB|IdApD\\nD^dHr@pCVr@BfDNxAFtH\\~FJ`DBfEBhH?vBAtFIfAChACRAvAG`H[bKe@lLy@zCY|Eq@tBYzBWnDo@~C]nEw@fEu@~Ck@ZGFA~D{@JCNGvCy@jJaC`AYj@M`Cs@n@S|@WXKjGuBlC_AnDoAnDwAdKkEvJuEhAi@z@m@ZMTMdB_ALCvBcAr@c@`B{@VMbAi@ZGNFLIDMTe@jF}C`BcA~DoCnI_GhDcC`IkG|BwBrAw@|LiKLK|BiBPOjDyCb@[|@]HAFEDI@MCKbBuAdA}@|BkBfB{AfLaJdAw@dDcCtB}AbBiAv@k@`BqAfAm@bCaBtAy@dAk@bB}@\\ShJaFrDcBzAo@lAi@`Bo@hBq@nAc@fFcBh@QnAa@f@OFCb@KzGgBtKeC`FiAjEgApA[jJqCjDmAlAg@~EkBzKyE|IwEhEcCzP{Kh@]jAq@lEeCxHuDfF}Bn@SrBs@fLaDlA[zBu@tHwAlBS`DYfGo@nAMxAMbBEd@CxAKbAExEa@lCMhSgApG_@`OeBn@KbOcCrGsAdCm@n@Qp@Q|Cs@xMsDvBs@|Bo@GYy@Xm@D_GsCgCw@iB_@kCSuBGoC@cBm@KF';
 
-// Winding river path - S-curves following water
-const RIVER_POLYLINE = 'g|xwFngnbMgCaC}BcCwBeCqBgCkBiCeBkC_BmCyAoCsAqCmAsC';
-
-// City grid commute - right angle turns A to B
-const COMMUTE_POLYLINE = '_z{wFngnbMgE?gE?gE?gE?gEgE?gE?gE?gE?gEgE?gE?gE?gE?gEgE?gE?gE';
-
-// Boardwalk run - gentle curves along shore
-const BOARDWALK_POLYLINE = 'o~uwFr|obMoCaAqCaAsC_AuC}@wC{@yCy@{Cw@}Cu@_Ds@aDq@cDo@eDm@gDk@iDi@kDg@';
-
-// Mountain descent trail - switchbacks going down
-const MOUNTAIN_POLYLINE = 'u}rwFjflbMcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcCcCnCvCcC';
-
-// Straight canal path - mostly straight with gentle bends
-const CANAL_POLYLINE = '_w_xFvwibMeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaAeD_AeDaA';
-
-// Forest winding trail - curves through trees
-const FOREST_POLYLINE = 'g|xwFngnbMcCgCoByC}AaDmAeDaAfD?fDjAfDzAdDhBbDtBoC~BaC';
-
-// Park loop - oval loop around park
-const PARK_LOOP_POLYLINE = '_oywFfhmbMgEfEgEnKcBnKbBnKfEfEnK?nKgEfEoK?oKgEoKkHgEkH?';
-
-// Neighborhood loop - city blocks square-ish loop
-const NEIGHBORHOOD_POLYLINE = 'szywFbclbMoD?oD?oD?oD??oD?oD?oD?oDnD?nD?nD?nD??nD?nD?nD?nD';
-
-// Track oval - classic running track shape (4 laps visible)
-const TRACK_POLYLINE = 'o~uwFr|obMg@Ri@b@c@n@Wz@G`ABbAP~@\\v@h@h@r@Tz@?x@Ut@i@h@y@Xg@RWPONMg@Ri@b@c@n@Wz@G`ABbAP~@\\v@h@h@r@Tz@?x@Ut@i@h@y@Xg@RW';
-
-// Figure-8 trail loop
-const FIGURE_EIGHT_POLYLINE = 'kzxwFxelbMcBcB_BiB{AkBwAmByAoBuAqBsAsBqAuBoAuBaBfBcBhB_BjB{AlBwAnByApBuArBsAtBqAvBoAxBaBgBcBiB';
+// Central Park 10K - real NYC Central Park route  
+const FAST_5K_POLYLINE = 'wfywFxsobM]RUXMVi@Ae@USIUBMD}@l@GDUz@Ol@KXm@d@yA?MYKC[DOFEFg@MGIO]I_@SVo@Tk@?o@Y_@W[_@Wg@[Au@]ME[a@i@k@ADo@c@{@e@gBg@CLAFg@Qw@[k@Us@a@GRqA}@u@k@KK]@QDy@h@YDs@EQIe@]WEG@MKIMAAQ_@y@_@k@i@GQEKOISE]ASIMOg@}@WW{@m@g@q@y@yA{@EMBq@^I?MEIE]i@K_@SJU@s@[i@e@Qa@Oi@CQAK@JQHWFWAYGK?QJEPaEmCCAOKQKAAECPo@Ja@Cu@?eAOcAQq@GSUa@[S_@K[?[@B_@LDMEC^i@_@o@Me@VYLk@HWG_@C_@HSRW`@AAEEGECCkBiACCCCOKGCCCOKyAaAUOgBkAUOgBiAUOgBkACAKI?WK_@IS@c@AAEEKEAACAGECAEGCCACU_@W_@[]i@[U[GYSyACQI]Qc@SYSO_@?WBg@Fe@A]Ms@_@_A@[I[Qi@k@EEAIAGAMUw@AM@SLc@?g@EOYe@CEACWOYKDODYy@Y}@a@o@]YSw@y@eAaASYEGMUSRGDQe@Uw@m@aDE@u@IWDUWIEK?C@IFKFc@GSUU_@GQS_@MOUSWKSGMGEQ?s@CQGOMGQEIDGFQXGDM@[GCLJn@Ko@BMAIBW?SGUYg@IYYk@o@k@KQEOAMAIESi@s@Mg@Kc@i@o@Kk@Bg@Q?ACGEIAH@FD@BP??EJWRQPMBI?KIYUm@]k@HAPDD?BEBc@@GDM?A?A@CBEBE`@T^Lb@BTGVOXSFQFEHAJ@@IBIBEFEBUHYFGGQIaADIHERq@BO?WHo@@CNINAPHNPDH@BFNl@h@Hb@AP^N\\XXXl@`ABRDNJTNTz@z@DP@LC\\O`AFAh@\\t@[VCh@Pf@Xl@Hf@A|AWXARHjArANOFIDGNQLCb@E@?NKb@DANN`@NNj@ZXVNXTjAFNj@d@`@v@LLHHJHRLPFFB`@?NEpAqAj@_@XI`@Cp@Hj@Vz@NZ?bAKZDf@PpAn@dLrHRLJHpL|Ht@l@Zp@NdA@dAQtBG`AB\\Hj@VtAHZFHPCHHLFd@Fd@ZV\\l@hA?@Vb@RPd@VVHjAFLDXRFFZr@\\RZ?`@GVMh@w@n@g@JMbA`BPNNFf@FXFlAv@HB`@A@?`@?ZRDBZXr@fATPn@Z\\L|AlBr@bAZVv@ZXBRDPP^BVOb@g@VMPEB?T?B@P@TJPFNHU`AEp@Fb@FLf@d@l@d@G\\~@b@p@h@\\f@Zt@JMDNNRTLXDZAd@Gx@a@h@`@lAZXLLJV`@JPNPr@v@j@Fp@CXHd@^Z?HDPLtA`A\\RvCjBGj@PNJZh@Uh@Ch@NlAt@ENAFGLMIMOg@[QGPFf@ZLNLHrAx@TNt@d@JJcA`DUp@oBjGIR[?KDWZAB';
 
 const MOCK_ACTIVITIES: ActivityStats[] = [
   {
     id: '1',
-    title: 'Coastal Run',
-    distance: '10.02 km',
-    time: '48m 12s',
-    elevation: '124 m',
-    pace: '4:48 /km',
+    title: 'Afternoon Run',
+    distance: '32.5 km',
+    time: '3h 45m 22s',
+    elevation: '1,285 m',
+    pace: '6:56 /km',
     type: 'run',
-    date: 'Today, 6:45 AM',
-    calories: '650 kcal',
-    heartRate: '165 bpm',
-    polyline: COASTAL_POLYLINE,
+    date: 'Today, 6:00 AM',
+    calories: '2,450 kcal',
+    heartRate: '152 bpm',
+    polyline: CITY_RUN_POLYLINE,
   },
   {
     id: '2',
-    title: 'Park Loop',
-    distance: '5.2 km',
-    time: '26m 30s',
-    elevation: '45 m',
-    pace: '5:06 /km',
+    title: 'Trail Run',
+    distance: '9.2 km',
+    time: '45m 18s',
+    elevation: '42 m',
+    pace: '4:55 /km',
     type: 'run',
-    date: 'Yesterday, 7:00 AM',
-    calories: '340 kcal',
-    heartRate: '155 bpm',
-    polyline: PARK_LOOP_POLYLINE,
+    date: 'Yesterday, 6:30 AM',
+    calories: '580 kcal',
+    heartRate: '162 bpm',
+    polyline: TRAIL_RUN_POLYLINE,
   },
   {
     id: '3',
-    title: 'Hill Climb',
-    distance: '8.5 km',
-    time: '52m 45s',
-    elevation: '510 m',
-    pace: '6:12 /km',
-    type: 'run',
-    date: 'Sunday, 7:00 AM',
-    calories: '620 kcal',
-    heartRate: '168 bpm',
-    polyline: HILL_CLIMB_POLYLINE,
+    title: 'Morning Ride',
+    distance: '41.8 km',
+    time: '1h 32m 45s',
+    elevation: '385 m',
+    pace: '27.1 km/h',
+    type: 'ride',
+    date: 'Sunday, 8:00 AM',
+    calories: '1,120 kcal',
+    heartRate: '145 bpm',
+    polyline: BIKE_RIDE_POLYLINE,
   },
   {
     id: '4',
-    title: 'Neighborhood Run',
-    distance: '6.8 km',
-    time: '32m 30s',
-    elevation: '55 m',
-    pace: '4:47 /km',
+    title: 'Evening Run',
+    distance: '10.2 km',
+    time: '48m 36s',
+    elevation: '72 m',
+    pace: '4:46 /km',
     type: 'run',
-    date: 'Saturday, 8:30 AM',
-    calories: '445 kcal',
-    heartRate: '158 bpm',
-    polyline: NEIGHBORHOOD_POLYLINE,
+    date: 'Saturday, 9:00 AM',
+    calories: '685 kcal',
+    heartRate: '168 bpm',
+    polyline: FAST_5K_POLYLINE,
   },
-  {
-    id: '5',
-    title: 'Out & Back',
-    distance: '8.0 km',
-    time: '35m 12s',
-    elevation: '68 m',
-    pace: '4:24 /km',
-    type: 'run',
-    date: 'Friday, 6:00 AM',
-    calories: '520 kcal',
-    heartRate: '172 bpm',
-    polyline: OUT_AND_BACK_POLYLINE,
-  },
-  {
-    id: '6',
-    title: 'Track Workout',
-    distance: '6.4 km',
-    time: '24m 48s',
-    elevation: '5 m',
-    pace: '3:52 /km',
-    type: 'run',
-    date: 'Thursday, 5:30 PM',
-    calories: '480 kcal',
-    heartRate: '178 bpm',
-    polyline: TRACK_POLYLINE,
-  },
-  {
-    id: '7',
-    title: 'Mountain Trail',
-    distance: '12.3 km',
-    time: '1h 15m 22s',
-    elevation: '620 m',
-    pace: '6:08 /km',
-    type: 'hike',
-    date: 'Wednesday, 9:00 AM',
-    calories: '890 kcal',
-    heartRate: '145 bpm',
-    polyline: MOUNTAIN_POLYLINE,
-  },
-  {
-    id: '8',
-    title: 'Figure 8 Trail',
-    distance: '9.5 km',
-    time: '48m 45s',
-    elevation: '135 m',
-    pace: '5:08 /km',
-    type: 'run',
-    date: 'Tuesday, 6:30 AM',
-    calories: '620 kcal',
-    heartRate: '162 bpm',
-    polyline: FIGURE_EIGHT_POLYLINE,
-  },
-  {
-    id: '9',
-    title: 'Forest Trail',
-    distance: '7.8 km',
-    time: '42m 18s',
-    elevation: '185 m',
-    pace: '5:25 /km',
-    type: 'run',
-    date: 'Monday, 7:15 AM',
-    calories: '510 kcal',
-    heartRate: '155 bpm',
-    polyline: FOREST_POLYLINE,
-  },
-  {
-    id: '10',
-    title: 'River Path',
-    distance: '11.2 km',
-    time: '54m 05s',
-    elevation: '78 m',
-    pace: '4:50 /km',
-    type: 'run',
-    date: 'Last Sunday, 8:00 AM',
-    calories: '595 kcal',
-    heartRate: '160 bpm',
-    polyline: RIVER_POLYLINE,
-  },
-  {
-    id: '11',
-    title: 'Canal Path',
-    distance: '15.0 km',
-    time: '1h 8m 45s',
-    elevation: '25 m',
-    pace: '4:35 /km',
-    type: 'run',
-    date: 'Last Saturday, 6:00 AM',
-    calories: '720 kcal',
-    heartRate: '158 bpm',
-    polyline: CANAL_POLYLINE,
-  },
-  {
-    id: '12',
-    title: 'Boardwalk Run',
-    distance: '4.5 km',
-    time: '21m 30s',
-    elevation: '12 m',
-    pace: '4:47 /km',
-    type: 'run',
-    date: 'Last Friday, 6:45 AM',
-    calories: '310 kcal',
-    heartRate: '152 bpm',
-    polyline: BOARDWALK_POLYLINE,
-  }
 ];
 
 export const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities, onSelectActivity, onManualUpload, onProfile, onSettings, athlete }) => {

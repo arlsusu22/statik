@@ -302,15 +302,34 @@ export const loginWithStrava = async () => {
   const state = crypto.randomUUID();
   await secureSet(TOKEN_KEYS.OAUTH_STATE, state);
   
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&approval_prompt=force&scope=${scope}&state=${state}`;
+  // Web OAuth URL (fallback)
+  const webAuthUrl = `https://www.strava.com/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&approval_prompt=force&scope=${scope}&state=${state}`;
   
   if (Capacitor.isNativePlatform()) {
-    // Open Strava auth in in-app browser
-    // The browser will be closed when we receive the deep link callback
-    await Browser.open({ url: authUrl });
+    // Try to open Strava app directly for seamless auth
+    // Strava app supports deep link OAuth - user is already logged in there
+    const stravaAppUrl = `strava://oauth/mobile/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&approval_prompt=auto&scope=${scope}&state=${state}`;
+    
+    try {
+      // Try opening the Strava app
+      // If Strava app is installed, this will open it directly
+      // approval_prompt=auto means it won't ask again if already authorized
+      window.location.href = stravaAppUrl;
+      
+      // Give time for the Strava app to open
+      // If it doesn't open (app not installed), fall back to browser
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // If we're still here, the Strava app likely isn't installed
+      // Fall back to in-app browser
+      await Browser.open({ url: webAuthUrl });
+    } catch {
+      // Fallback to browser if deep link fails
+      await Browser.open({ url: webAuthUrl });
+    }
   } else {
     // Web fallback
-    window.location.href = authUrl;
+    window.location.href = webAuthUrl;
   }
 };
 
